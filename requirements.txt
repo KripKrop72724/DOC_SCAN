@@ -1,0 +1,14 @@
+cx_Oracle
+Flask
+Flask_Compress
+Flask_Cors
+Flask_JWT_Extended
+Flask_RESTful
+pandas
+Pillow
+pymongo
+bcrypt~=4.0.0
+pytesseract
+keras
+tensorflow
+matplotlib
