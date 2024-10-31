@@ -354,6 +354,70 @@ def route_function_mortality_upload():
     return "saved"
 
 
+def bulk_saving_function_for_multi_threaded_saving_mortality(data_to_be_saved, d):
+    print("line 1")
+    # data_to_be_saved = request.get_json()
+    # print(data_to_be_saved)
+    # d = json.dumps(data_to_be_saved)
+    print("line 2")
+    loaded = json.loads(d)
+    print("line 3")
+    # print(loaded)
+    for i in (loaded["scannedImages"]["data"]):
+        print("line 4")
+        # print(i["baseX64"][1:])
+        imgdata = base64.b64decode('/' + (i["base64"])[1:])
+        print("line 5")
+        filename = str(
+            doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
+        with open(filename, 'wb') as f:
+            f.write(imgdata)
+        im = Image.open(filename)
+
+        image_bytes = io.BytesIO()
+        print("original image captured...")
+        im.save(image_bytes, format='JPEG')
+
+        doc_value = image_bytes.getvalue()
+        print(filename)
+        print(filename[:-4])
+        jpg_compress_mechanisms.resize_on_the_go(filename)
+        with open(filename, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            thumb = encoded_string
+            # print(thumb)
+        print('MAKING THE OBJECT')
+        image = {
+            'doc_id': int(str(filename).split('.')[0]),
+            'doc': image_bytes.getvalue(),
+            'mrno': loaded["mrno"],
+            'class': None,
+            'ocr': None,
+            'notes': None,
+            'misclassified': False,
+            'marked_as_fav_by_user': None,  # this will be an array
+            'main_type': None,
+            'is_bulk': True,
+            'uploaded': True,
+            'is_del': False,
+            'del_by': '',
+            'rc_by_id': None,
+            'thumb': thumb,
+            'mrt': True
+        }
+        # print(image)
+        print("Connecting to db")
+        my_client = MongoClient()
+        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+        collection = my_client["DOC_SCAN"]
+        doc_id = collection['AUTH']
+        doc = collection['DOCUMENTS']
+        image_id = doc.insert_one(image).inserted_id
+    for img in glob.glob("*.jpg"):
+        print("removing " + img)
+        os.remove(img)
+
+
 def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d):
     print("line 1")
     # data_to_be_saved = request.get_json()
@@ -402,7 +466,8 @@ def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d):
             'is_del': False,
             'del_by': '',
             'rc_by_id': None,
-            'thumb': thumb
+            'thumb': thumb,
+            'mrt': False
         }
         # print(image)
         print("Connecting to db")
@@ -423,6 +488,16 @@ def route_function_upload_bulk():
     data_to_be_saved = request.get_json()
     d = json.dumps(data_to_be_saved)
     multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving, args=(data_to_be_saved, d,)).start()
+    return "saved"
+
+
+@app.route("/docscan/mortality/upload/bulk", methods=["POST"])
+@jwt_required()
+def route_function_mortality_upload_bulk():
+    data_to_be_saved = request.get_json()
+    d = json.dumps(data_to_be_saved)
+    multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving_mortality,
+                            args=(data_to_be_saved, d,)).start()
     return "saved"
 
 
@@ -519,7 +594,61 @@ def route_function_bulk_save():
             'is_bulk': True,
             'del_by': '',
             'is_del': False,
-            'rc_by_id': None
+            'rc_by_id': None,
+            'mrt': False
+        }
+
+        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+        collection = my_client["DOC_SCAN"]
+        doc = collection['DOCUMENTS']
+        image_id = doc.insert_one(image).inserted_id
+
+    # Remove all jpg files after processing
+    for img in glob.glob("*.jpg"):
+        print("removing " + img)
+        os.remove(img)
+
+    return "saved"
+
+
+@app.route("mortality/bulk/save", methods=["POST"])
+def route_function_bulk_save():
+    data_to_be_saved = request.get_json()
+    loaded = json.loads(json.dumps(data_to_be_saved))
+
+    for i in loaded["scannedImages"]["scannerImages"]:
+        # Remove the prefix before decoding
+        base64_data = i["base64"].split(",")[-1]
+        imgdata = base64.b64decode(base64_data)
+        filename = str(doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
+
+        with open(filename, 'wb') as f:
+            f.write(imgdata)
+
+        try:
+            im = Image.open(filename)
+        except IOError:
+            print(f"Error: Cannot identify image file {filename}")
+            continue  # Skip this image and continue with the next
+
+        image_bytes = io.BytesIO()
+        im.save(image_bytes, format='JPEG')
+
+        image = {
+            'doc_id': int(filename.split('.')[0]),
+            'doc': image_bytes.getvalue(),
+            'mrno': loaded["mrno"],
+            'class': None,
+            'ocr': None,
+            'notes': None,
+            'misclassified': False,
+            'marked_as_fav_by_user': None,
+            'main_type': None,
+            'is_bulk': True,
+            'del_by': '',
+            'is_del': False,
+            'rc_by_id': None,
+            'mrt': True
         }
 
         my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
