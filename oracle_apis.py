@@ -96,10 +96,11 @@ def ipd_patient_details_with_date(date, m):
     print(admission_details)
     print(len(admission_details))
     if len(admission_details) > 0:
+        # Sort admission_details by 'admission_ID'
+        admission_details.sort(key=lambda x: x['admission_ID'])
         return admission_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
-
 
 def ipd_patient_details_dates_only(m):
     admission_details = [
