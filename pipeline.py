@@ -281,7 +281,7 @@ def route_function_upload():
 
 @app.route("/docscan/mortality/upload/", methods=["POST"])
 @jwt_required()
-def route_function_mortality_upload():
+def route_function_mortality_upload_new():
     print("line 1")
     data_to_be_saved = request.get_json()
     # print(data_to_be_saved)
@@ -354,7 +354,7 @@ def route_function_mortality_upload():
     return "saved"
 
 
-def bulk_saving_function_for_multi_threaded_saving_mortality(data_to_be_saved, d):
+def bulk_saving_function_for_multi_threaded_saving_mortality_n(data_to_be_saved, d):
     print("line 1")
     # data_to_be_saved = request.get_json()
     # print(data_to_be_saved)
@@ -493,10 +493,10 @@ def route_function_upload_bulk():
 
 @app.route("/docscan/mortality/upload/bulk", methods=["POST"])
 @jwt_required()
-def route_function_mortality_upload_bulk():
+def route_function_mrt_upload_bulk():
     data_to_be_saved = request.get_json()
     d = json.dumps(data_to_be_saved)
-    multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving_mortality,
+    multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving_mortality_n,
                             args=(data_to_be_saved, d,)).start()
     return "saved"
 
@@ -612,7 +612,7 @@ def route_function_bulk_save():
 
 
 @app.route("mortality/bulk/save", methods=["POST"])
-def route_function_bulk_save():
+def route_function_bulk_save_for_mortality():
     data_to_be_saved = request.get_json()
     loaded = json.loads(json.dumps(data_to_be_saved))
 
