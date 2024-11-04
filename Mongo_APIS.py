@@ -614,7 +614,6 @@ def image_count_with_class_names(mr_no):
     return output_object
 
 
-
 def get_images_by_class_doc(mr_no, class_filter):
     my_client = MongoClient()
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD),
