@@ -570,6 +570,9 @@ def image_count_with_class_names(mr_no):
     # Query the database for the MRNO and count the documents
     image_count = doc.count_documents({"mrno": mr_no, "is_del": False})
 
+    # Check if any documents have mrt=True
+    has_mrt = doc.find_one({"mrno": mr_no, "is_del": False, "mrt": True}) is not None
+
     # Aggregate to count images per class
     pipeline = [
         {"$match": {"mrno": mr_no, "is_del": False}},
@@ -578,11 +581,12 @@ def image_count_with_class_names(mr_no):
     class_counts = list(doc.aggregate(pipeline))
 
     # Create a dictionary for quick class ID to count mapping
-    class_count_dict = {item['_id']: item['count'] for item in class_counts}
+    class_count_dict = {str(item['_id']): item['count'] for item in class_counts}
 
     # The object you want to update with the image count and class counts
     output_object = {
         "image_count": image_count,
+        "mrt": True if has_mrt else False,
         "classes": [
             {"name": "Admission Orders", "id": 1},
             {"name": "Face Sheet", "id": 13},
@@ -604,9 +608,11 @@ def image_count_with_class_names(mr_no):
 
     # Add image counts to each class in the output_object
     for cls in output_object['classes']:
-        cls['image_count'] = class_count_dict.get(str(cls['id']), 0)
+        cls_id_str = str(cls['id'])
+        cls['image_count'] = class_count_dict.get(cls_id_str, 0)
 
     return output_object
+
 
 
 def get_images_by_class_doc(mr_no, class_filter):
