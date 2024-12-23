@@ -897,6 +897,50 @@ def get_images_by_visit_id_op(visit_id_op):
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
 
 
+@app.route("/docscan/images/admission/<admission_id>", methods=["GET"])
+@jwt_required()
+def get_images_by_admission_id(admission_id):
+    try:
+        # Connect to MongoDB
+        client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+        db = client["DOC_SCAN"]
+        collection = db["DOCUMENTS"]
+
+        # Query documents by admission_id
+        images = collection.find({"admission_id": admission_id}, {
+            "_id": 0,  # Exclude MongoDB object ID
+            "doc_id": 1,
+            "mrno": 1,
+            "type": 1,
+            "admission_id": 1,
+            "doc": 1  # Include image data
+        })
+
+        # Convert the cursor to a list
+        images_list = list(images)
+
+        # Check if any images were found
+        if not images_list:
+            return jsonify({"message": f"No images found for admission_id: {admission_id}"}), 404
+
+        # Prepare the response
+        results = []
+        for image in images_list:
+            results.append({
+                "doc_id": image["doc_id"],
+                "mrno": image["mrno"],
+                "type": image["type"],
+                "admission_id": image["admission_id"],
+                "image": base64.b64encode(image["doc"]).decode('utf-8')  # Convert binary to base64
+            })
+
+        return jsonify({"images": results}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "An error occurred", "error": str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
