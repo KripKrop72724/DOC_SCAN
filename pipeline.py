@@ -857,6 +857,46 @@ def bulk_dumb_classify():
     return {"status": 200}
 
 
+@app.route("/docscan/images/<visit_id_op>", methods=["GET"])
+@jwt_required()
+def get_images_by_visit_id_op(visit_id_op):
+    try:
+        client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+        db = client["DOC_SCAN"]
+        collection = db["DOCUMENTS"]
+
+        images = collection.find({"visit_id_op": visit_id_op}, {
+            "_id": 0,  # Exclude MongoDB object ID
+            "doc_id": 1,
+            "mrno": 1,
+            "type": 1,
+            "visit_id_op": 1,
+            "doc": 1
+        })
+
+        images_list = list(images)
+
+        if not images_list:
+            return jsonify({"message": f"No images found for visit_id_op: {visit_id_op}"}), 404
+
+        # Prepare the response
+        results = []
+        for image in images_list:
+            results.append({
+                "doc_id": image["doc_id"],
+                "mrno": image["mrno"],
+                "type": image["type"],
+                "visit_id_op": image["visit_id_op"],
+                "image": base64.b64encode(image["doc"]).decode('utf-8')
+            })
+
+        return jsonify({"images": results}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "An error occurred", "error": str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
