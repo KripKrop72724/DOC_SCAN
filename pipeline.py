@@ -865,24 +865,23 @@ def get_images_by_visit_id_op(visit_id_op):
         db = client["DOC_SCAN"]
         collection = db["DOCUMENTS"]
 
-        images = collection.find({"visit_id_op": visit_id_op}, {
-            "_id": 0,  # Exclude MongoDB object ID
-            "doc_id": 1,
-            "mrno": 1,
-            "type": 1,
-            "visit_id_op": 1,
-            "doc": 1
-        })
+        # Use the indexed query
+        images_cursor = collection.find(
+            {"visit_id_op": visit_id_op},
+            {
+                "_id": 0,
+                "doc_id": 1,
+                "mrno": 1,
+                "type": 1,
+                "visit_id_op": 1,
+                "doc": 1
+            }
+        ).batch_size(100)
 
-        images_list = list(images)
 
-        if not images_list:
-            return jsonify({"message": f"No images found for visit_id_op: {visit_id_op}"}), 404
-
-        # Prepare the response
-        results = []
-        for image in images_list:
-            results.append({
+        images_list = []
+        for image in images_cursor:
+            images_list.append({
                 "doc_id": image["doc_id"],
                 "mrno": image["mrno"],
                 "type": image["type"],
@@ -890,7 +889,10 @@ def get_images_by_visit_id_op(visit_id_op):
                 "image": base64.b64encode(image["doc"]).decode('utf-8')
             })
 
-        return jsonify({"images": results}), 200
+        if not images_list:
+            return jsonify({"message": f"No images found for visit_id_op: {visit_id_op}"}), 404
+
+        return jsonify({"images": images_list}), 200
 
     except Exception as e:
         print(f"Error: {e}")
@@ -901,40 +903,37 @@ def get_images_by_visit_id_op(visit_id_op):
 @jwt_required()
 def get_images_by_admission_id(admission_id):
     try:
-        # Connect to MongoDB
         client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
         db = client["DOC_SCAN"]
         collection = db["DOCUMENTS"]
 
-        # Query documents by admission_id
-        images = collection.find({"admission_id": admission_id}, {
-            "_id": 0,  # Exclude MongoDB object ID
-            "doc_id": 1,
-            "mrno": 1,
-            "type": 1,
-            "admission_id": 1,
-            "doc": 1  # Include image data
-        })
+        # Use the indexed query
+        images_cursor = collection.find(
+            {"admission_id": admission_id},
+            {
+                "_id": 0,
+                "doc_id": 1,
+                "mrno": 1,
+                "type": 1,
+                "admission_id": 1,
+                "doc": 1
+            }
+        ).batch_size(100)
 
-        # Convert the cursor to a list
-        images_list = list(images)
-
-        # Check if any images were found
-        if not images_list:
-            return jsonify({"message": f"No images found for admission_id: {admission_id}"}), 404
-
-        # Prepare the response
-        results = []
-        for image in images_list:
-            results.append({
+        images_list = []
+        for image in images_cursor:
+            images_list.append({
                 "doc_id": image["doc_id"],
                 "mrno": image["mrno"],
                 "type": image["type"],
                 "admission_id": image["admission_id"],
-                "image": base64.b64encode(image["doc"]).decode('utf-8')  # Convert binary to base64
+                "image": base64.b64encode(image["doc"]).decode('utf-8')
             })
 
-        return jsonify({"images": results}), 200
+        if not images_list:
+            return jsonify({"message": f"No images found for admission_id: {admission_id}"}), 404
+
+        return jsonify({"images": images_list}), 200
 
     except Exception as e:
         print(f"Error: {e}")
