@@ -564,10 +564,7 @@ def bulk_viewer(mr_no):
 def image_count_with_class_names(filter_criteria):
     """
     Fetch image count and class details based on filter criteria.
-    Supports filtering by mrno, admission_id, or visit_id_op.
-
-    :param filter_criteria: Dictionary containing filtering keys like 'mrno', 'admission_id', or 'visit_id_op'.
-    :return: Dictionary with image count, MRT status, and class details.
+    Optimized with MongoDB indexing for faster query execution.
     """
     try:
         # Establish MongoDB connection
@@ -577,11 +574,11 @@ def image_count_with_class_names(filter_criteria):
 
         # Prepare the query filter
         query_filter = {"is_del": False}
-        if "mrno" in filter_criteria:
+        if filter_criteria.get("mrno"):
             query_filter["mrno"] = filter_criteria["mrno"]
-        if "admission_id" in filter_criteria:
+        if filter_criteria.get("admission_id"):
             query_filter["admission_id"] = filter_criteria["admission_id"]
-        if "visit_id_op" in filter_criteria:
+        if filter_criteria.get("visit_id_op"):
             query_filter["visit_id_op"] = filter_criteria["visit_id_op"]
 
         # Count total images based on the filter
@@ -639,13 +636,14 @@ def image_count_with_class_names(filter_criteria):
         return {"error": "An error occurred while processing the request", "details": str(e)}
 
 
+
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
     """
     Retrieve images filtered by mrno, admission_id, visit_id_op, and class.
+    Optimized with MongoDB indexing for faster query execution.
     """
     try:
         # Connect to MongoDB
-        my_client = MongoClient()
         my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
         collection = my_client["DOC_SCAN"]
         doc = collection['DOCUMENTS']
@@ -661,8 +659,8 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
         if class_filter:
             query_filter["class"] = class_filter
 
-        # Query MongoDB
-        cur = doc.find(query_filter, {"doc_id": 1, "doc": 1})
+        # Use MongoDB cursor with projection
+        cur = doc.find(query_filter, {"doc_id": 1, "doc": 1}).batch_size(100)
 
         # Process results
         images = []
@@ -687,7 +685,6 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
             "message": "An error occurred while processing the request.",
             "error": str(e)
         }
-
 
 
 # def get_images_by_class_thumb(mr_no, class_filter):

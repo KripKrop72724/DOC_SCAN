@@ -579,12 +579,19 @@ def route_function_bulk_view_class_thumb():
     return Mongo_APIS.get_images_by_class_thumb(mr, class_filter)
 
 
-@app.route("/bulk/view/class/count_based", methods=["GET"])
-@jwt_required()
 def route_function_bulk_view_class_count_based():
     mr = request.args.get("mrno")
-    class_filter = request.args.get("class")
-    return Mongo_APIS.image_count_with_class_names(mr)
+    admission_id = request.args.get("admission_id")
+    visit_id_op = request.args.get("visit_id_op")
+
+    filter_criteria = {
+        "mrno": mr,
+        "admission_id": admission_id,
+        "visit_id_op": visit_id_op
+    }
+
+    # Pass filter_criteria to the function
+    return Mongo_APIS.image_count_with_class_names(filter_criteria)
 
 
 @app.route("/employee_data", methods=["GET"])
