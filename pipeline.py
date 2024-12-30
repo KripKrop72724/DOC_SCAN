@@ -573,12 +573,6 @@ def route_function_bulk_view_class_doc():
 
 @app.route("/bulk/view/class/compressed", methods=["GET"])
 @jwt_required()
-def route_function_bulk_view_class_thumb():
-    mr = request.args.get("mrno")
-    class_filter = request.args.get("class")
-    return Mongo_APIS.get_images_by_class_thumb(mr, class_filter)
-
-
 def route_function_bulk_view_class_count_based():
     mr = request.args.get("mrno")
     admission_id = request.args.get("admission_id")
