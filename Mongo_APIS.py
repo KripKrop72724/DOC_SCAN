@@ -639,26 +639,55 @@ def image_count_with_class_names(filter_criteria):
         return {"error": "An error occurred while processing the request", "details": str(e)}
 
 
-def get_images_by_class_doc(mr_no, class_filter):
-    my_client = MongoClient()
-    my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD),
-                            unicode_decode_error_handler='ignore')
-    collection = my_client["DOC_SCAN"]
-    doc = collection['DOCUMENTS']
-    cur = doc.find({"mrno": mr_no, "class": class_filter, "is_del": False}, {"doc_id": 1, "doc": 1})
+def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
+    """
+    Retrieve images filtered by mrno, admission_id, visit_id_op, and class.
+    """
+    try:
+        # Connect to MongoDB
+        my_client = MongoClient()
+        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
+        collection = my_client["DOC_SCAN"]
+        doc = collection['DOCUMENTS']
 
-    images = []
-    for document in cur:
-        img_data = document['doc']
-        if isinstance(img_data, bytes):
-            img_data = base64.b64encode(img_data).decode('utf-8')
-        images.append({'base64': img_data, 'id': document['doc_id']})
+        # Construct query filter dynamically
+        query_filter = {"is_del": False}
+        if mr_no:
+            query_filter["mrno"] = mr_no
+        if admission_id:
+            query_filter["admission_id"] = admission_id
+        if visit_id_op:
+            query_filter["visit_id_op"] = visit_id_op
+        if class_filter:
+            query_filter["class"] = class_filter
 
-    return {
-        "data": [{"id": class_filter, "image": images}],
-        "status": 200,
-        "message": "Success"
-    }
+        # Query MongoDB
+        cur = doc.find(query_filter, {"doc_id": 1, "doc": 1})
+
+        # Process results
+        images = []
+        for document in cur:
+            img_data = document['doc']
+            if isinstance(img_data, bytes):
+                img_data = base64.b64encode(img_data).decode('utf-8')
+            images.append({'base64': img_data, 'id': document['doc_id']})
+
+        return {
+            "data": [{"id": class_filter or "all", "image": images}],
+            "status": 200,
+            "message": "Success"
+        }
+
+    except Exception as e:
+        # Log and return error response
+        print(f"Error in get_images_by_class_doc: {e}")
+        return {
+            "data": [],
+            "status": 500,
+            "message": "An error occurred while processing the request.",
+            "error": str(e)
+        }
+
 
 
 # def get_images_by_class_thumb(mr_no, class_filter):
