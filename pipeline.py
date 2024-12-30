@@ -878,7 +878,6 @@ def get_images_by_visit_id_op(visit_id_op):
             }
         ).batch_size(100)
 
-
         images_list = []
         for image in images_cursor:
             images_list.append({

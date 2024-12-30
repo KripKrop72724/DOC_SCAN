@@ -561,33 +561,47 @@ def bulk_viewer(mr_no):
 #     }
 #
 #     return output_object
-def image_count_with_class_names(mr_no):
-    # Establish MongoDB connection
-    my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
-    collection = my_client["DOC_SCAN"]
-    doc = collection['DOCUMENTS']
+def image_count_with_class_names(filter_criteria):
+    """
+    Fetch image count and class details based on filter criteria.
+    Supports filtering by mrno, admission_id, or visit_id_op.
 
-    # Query the database for the MRNO and count the documents
-    image_count = doc.count_documents({"mrno": mr_no, "is_del": False})
+    :param filter_criteria: Dictionary containing filtering keys like 'mrno', 'admission_id', or 'visit_id_op'.
+    :return: Dictionary with image count, MRT status, and class details.
+    """
+    try:
+        # Establish MongoDB connection
+        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
+        collection = my_client["DOC_SCAN"]
+        doc = collection['DOCUMENTS']
 
-    # Check if any documents have mrt=True
-    has_mrt = doc.find_one({"mrno": mr_no, "is_del": False, "mrt": True}) is not None
+        # Prepare the query filter
+        query_filter = {"is_del": False}
+        if "mrno" in filter_criteria:
+            query_filter["mrno"] = filter_criteria["mrno"]
+        if "admission_id" in filter_criteria:
+            query_filter["admission_id"] = filter_criteria["admission_id"]
+        if "visit_id_op" in filter_criteria:
+            query_filter["visit_id_op"] = filter_criteria["visit_id_op"]
 
-    # Aggregate to count images per class
-    pipeline = [
-        {"$match": {"mrno": mr_no, "is_del": False}},
-        {"$group": {"_id": "$class", "count": {"$sum": 1}}}
-    ]
-    class_counts = list(doc.aggregate(pipeline))
+        # Count total images based on the filter
+        image_count = doc.count_documents(query_filter)
 
-    # Create a dictionary for quick class ID to count mapping
-    class_count_dict = {str(item['_id']): item['count'] for item in class_counts}
+        # Check if any documents have mrt=True
+        has_mrt = doc.find_one({**query_filter, "mrt": True}) is not None
 
-    # The object you want to update with the image count and class counts
-    output_object = {
-        "image_count": image_count,
-        "mrt": True if has_mrt else False,
-        "classes": [
+        # Aggregate to count images per class
+        pipeline = [
+            {"$match": query_filter},
+            {"$group": {"_id": "$class", "count": {"$sum": 1}}}
+        ]
+        class_counts = list(doc.aggregate(pipeline))
+
+        # Create a dictionary for quick class ID to count mapping
+        class_count_dict = {str(item['_id']): item['count'] for item in class_counts}
+
+        # Define class details
+        classes = [
             {"name": "Admission Orders", "id": 1},
             {"name": "Face Sheet", "id": 13},
             {"name": "Authorization And Consent", "id": 2},
@@ -604,14 +618,25 @@ def image_count_with_class_names(mr_no):
             {"name": "Personalized Document", "id": 14},
             {"name": "Unclassified", "id": 0}
         ]
-    }
 
-    # Add image counts to each class in the output_object
-    for cls in output_object['classes']:
-        cls_id_str = str(cls['id'])
-        cls['image_count'] = class_count_dict.get(cls_id_str, 0)
+        # Add image counts to each class
+        for cls in classes:
+            cls_id_str = str(cls['id'])
+            cls['image_count'] = class_count_dict.get(cls_id_str, 0)
 
-    return output_object
+        # Prepare the output object
+        output_object = {
+            "image_count": image_count,
+            "mrt": True if has_mrt else False,
+            "classes": classes
+        }
+
+        return output_object
+
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in image_count_with_class_names: {e}")
+        return {"error": "An error occurred while processing the request", "details": str(e)}
 
 
 def get_images_by_class_doc(mr_no, class_filter):
