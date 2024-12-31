@@ -571,7 +571,7 @@ def route_function_bulk_view_class_doc():
     return Mongo_APIS.get_images_by_class_doc(mr_no, class_filter, admission_id, visit_id_op)
 
 
-@app.route("/bulk/view/class/compressed", methods=["GET"])
+@app.route("/bulk/view/class/count_based", methods=["GET"])
 @jwt_required()
 def route_function_bulk_view_class_count_based():
     mr = request.args.get("mrno")
@@ -586,6 +586,14 @@ def route_function_bulk_view_class_count_based():
 
     # Pass filter_criteria to the function
     return Mongo_APIS.image_count_with_class_names(filter_criteria)
+
+
+# @app.route("/bulk/view/class/compressed", methods=["GET"])
+# @jwt_required()
+# def route_function_bulk_view_class_thumb():
+#     mr = request.args.get("mrno")
+#     class_filter = request.args.get("class")
+#     return Mongo_APIS.get_images_by_class_thumb(mr, class_filter)
 
 
 @app.route("/employee_data", methods=["GET"])

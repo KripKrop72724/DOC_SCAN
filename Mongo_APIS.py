@@ -636,7 +636,6 @@ def image_count_with_class_names(filter_criteria):
         return {"error": "An error occurred while processing the request", "details": str(e)}
 
 
-
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
     """
     Retrieve images filtered by mrno, admission_id, visit_id_op, and class.
