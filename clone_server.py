@@ -3,7 +3,7 @@ import pandas as pd
 from pymongo import MongoClient
 import multiprocessing
 import time
-from MONGO_CRED import DB_URL, DB_PASSWORD, DB_USERNAME
+from MONGO_CRED import DB_URL, DB_PASSWORD, DB_USERNAME, dsn_tns
 
 
 def clone_mongo():
@@ -15,8 +15,6 @@ def clone_mongo():
         doc_id = collection['AUTH']
         doc_id.drop()
         time.sleep(1.5)
-
-        dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
         cursor = dsn_tns.cursor()
 
         query = "select cdr.api_users.username , cdr.api_users.password  from cdr.api_users"
