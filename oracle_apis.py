@@ -3,6 +3,7 @@ import pandas as pd
 import calendar
 import base64
 from driver_helper import clear_crap as cc
+from MONGO_CRED import dsn_tns
 
 
 def ipd_patient_details(m):
@@ -16,8 +17,6 @@ def ipd_patient_details(m):
             'doctor_name': u''
         }
     ]
-
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     # lis = list()
     mr = m
@@ -68,8 +67,6 @@ def ipd_patient_details_with_date(date, m):
             'doctor_name': u''
         }
     ]
-
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     # lis = list()
     mr = m
@@ -102,6 +99,7 @@ def ipd_patient_details_with_date(date, m):
     else:
         return {"Error": "Either the record was not available or there was an error"}
 
+
 def ipd_patient_details_dates_only(m):
     admission_details = [
         {
@@ -109,8 +107,6 @@ def ipd_patient_details_dates_only(m):
             'admission_date': u'',
         }
     ]
-
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     # lis = list()
     mr = m
@@ -148,7 +144,6 @@ def opd_patient_details(m):
             'doctor_name': u''
         }
     ]
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     mr = m
     mr = "'" + mr + "'"
@@ -185,7 +180,6 @@ def opd_patient_details_dates_only(m):
             'visit_date': u'',
         }
     ]
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     mr = m
     mr = "'" + mr + "'"
@@ -232,7 +226,6 @@ def opd_patient_details_with_date(date, m):
             'doctor_name': u''
         }
     ]
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     for row in cursor.execute(query):
         df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'doctor_speciality',
@@ -264,7 +257,6 @@ def demo(m):
     query_result = {}
     mr = m
     mr = "'" + mr + "'"
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     ca = cursor
     query = "select p.mr#,p.cell_phone#,p.patient_full_name,p.patient_gender,e.ADDRESS,e.AGE,e.DOB,e.province_state from patients p,ODS.EMR_PATIENT_DEMOGRAPHICS e where p.mr#=e.mr# and e.mr#= " + mr
@@ -293,7 +285,6 @@ def mrd_emp_data():
     emp_details = []
     bs64 = str()
     query = "select t.emp_id || '.jpg' ,t.name,p.photo, t.email from employee_list_working t,employee_profile p where t.dept_id=19 and t.emp_id=p.emp_id"
-    dsn_tns = cx_Oracle.connect('ASAD_25510/asad#123@prodhims.shifa.com.pk:1521/himsdb.shifa.com.pk')
     cursor = dsn_tns.cursor()
     for row in cursor.execute(query):
         df = pd.DataFrame(row, index=['EMP_ID', 'NAME', 'PHOTO', 'EMAIL'], )
@@ -317,11 +308,11 @@ def mrd_emp_data():
     cc('temp')
     print(emp_details)
     res = {
-            "data": emp_details,
-            "status": True,
-            "statusCode": 200,
-            "message": "Success",
-            "error": ""
+        "data": emp_details,
+        "status": True,
+        "statusCode": 200,
+        "message": "Success",
+        "error": ""
     }
     return res
 
