@@ -613,7 +613,7 @@ def image_count_with_class_names(filter_criteria):
             {"name": "Maternity Notes", "id": 8},
             {"name": "PEADS History", "id": 12},
             {"name": "Personalized Document", "id": 14},
-            {"name": "Unclassified", "id": 0}
+            {"name": "Unclassified", "id": 15}
         ]
 
         # Add image counts to each class
