@@ -49,6 +49,24 @@ def ipd_patient_details(m):
         return {"Error": "Either the record was not available or there was an error"}
 
 
+def check_mortality(mr):
+    """
+    Checks if the given MR number exists in the admission.mortality table.
+    Returns True if found, otherwise False.
+    """
+    cursor = dsn_tns.cursor()
+    # Prepare the MR value for the SQL query
+    mr_str = "'" + mr + "'"
+    query = "SELECT COUNT(*) FROM admission.mortality WHERE mrno = " + mr_str
+    cursor.execute(query)
+    result = cursor.fetchone()
+    # If the count is greater than zero, the MR exists in the mortality table.
+    if result and result[0] > 0:
+        return True
+    else:
+        return False
+
+
 def ipd_patient_details_with_date(date, m):
     month = date[3:5]
     month = int(month)
