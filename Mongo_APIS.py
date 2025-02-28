@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 import base64
 import pytesseract
+
+from oracle_apis import check_mortality
 from weak_classifier import classify
 import os
 import multiprocessing
@@ -573,9 +575,11 @@ def image_count_with_class_names(filter_criteria):
         doc = collection['DOCUMENTS']
 
         # Prepare the query filter
+        has_mrt = False
         query_filter = {"is_del": False}
         if filter_criteria.get("mrno"):
             query_filter["mrno"] = filter_criteria["mrno"]
+            has_mrt = check_mortality(query_filter["mrno"])
         if filter_criteria.get("admission_id"):
             query_filter["admission_id"] = filter_criteria["admission_id"]
         if filter_criteria.get("visit_id_op"):
@@ -585,7 +589,8 @@ def image_count_with_class_names(filter_criteria):
         image_count = doc.count_documents(query_filter)
 
         # Check if any documents have mrt=True
-        has_mrt = doc.find_one({**query_filter, "mrt": True}) is not None
+        # has_mrt = doc.find_one({**query_filter, "mrt": True}) is not None
+
 
         # Aggregate to count images per class
         pipeline = [

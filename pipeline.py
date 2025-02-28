@@ -584,14 +584,8 @@ def route_function_bulk_view_class_count_based():
         "visit_id_op": visit_id_op
     }
 
-    # Check if the MR exists in the mortality table
-    mortality_status = oracle_apis.check_mortality(mr)
-
-    response = {
-        "filter_criteria": filter_criteria,
-        "mortality": mortality_status
-    }
-    return jsonify(response)
+    # Pass filter_criteria to the function
+    return Mongo_APIS.image_count_with_class_names(filter_criteria)
 
 # @app.route("/bulk/view/class/compressed", methods=["GET"])
 # @jwt_required()
