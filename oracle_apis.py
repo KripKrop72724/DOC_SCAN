@@ -57,7 +57,7 @@ def check_mortality(mr):
     cursor = dsn_tns.cursor()
     # Prepare the MR value for the SQL query
     mr_str = "'" + mr + "'"
-    query = "SELECT COUNT(*) FROM admission.mortality WHERE mrno = " + mr_str
+    query = "SELECT COUNT(*) FROM admission.mortality WHERE MR# = " + mr_str
     cursor.execute(query)
     result = cursor.fetchone()
     # If the count is greater than zero, the MR exists in the mortality table.
