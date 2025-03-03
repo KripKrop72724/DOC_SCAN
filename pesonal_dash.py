@@ -12,7 +12,7 @@ collection = db['DOCUMENTS']
 def stats_calculator():
     total_files = collection.distinct('mrno')
     total_documents = collection.count_documents({})
-    total_unclassified = collection.count_documents({"class": {"$eq": '0'}})
+    total_unclassified = collection.count_documents({"class": {"$eq": '15'}})
     current_classifier_accuracy = 100 - ((total_unclassified / total_documents) * 100)
     total_classified = total_documents - total_unclassified
     total_space_used = db.command("collstats", "DOCUMENTS")
