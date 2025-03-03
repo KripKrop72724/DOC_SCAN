@@ -566,9 +566,9 @@ def bulk_viewer(mr_no):
 def image_count_with_class_names(filter_criteria):
     """
     Fetch image count and class details based on filter criteria.
-    Documents with class 0 are remapped to class 15 ("Unclassified").
+    Documents with class "0" (as a string) are remapped to class 15 ("Unclassified").
     Optimized with MongoDB indexing for faster query execution.
-    Detailed print statements are added for debugging purposes.
+    Detailed print statements are added for debugging.
     """
     try:
         print("Establishing MongoDB connection...")
@@ -584,7 +584,6 @@ def image_count_with_class_names(filter_criteria):
         print(f"Input filter_criteria: {filter_criteria}")
         has_mrt = False
         query_filter = {"is_del": False}
-
         if filter_criteria.get("mrno"):
             query_filter["mrno"] = filter_criteria["mrno"]
             print(f"Adding mrno filter: {filter_criteria['mrno']}")
@@ -604,14 +603,14 @@ def image_count_with_class_names(filter_criteria):
         image_count = doc.count_documents(query_filter)
         print(f"Total image count for the given filter: {image_count}")
 
-        # Aggregate to count images per class, remapping class 0 to 15 (Unclassified)
-        print("Starting aggregation to count images per class, remapping class 0 to 15 (Unclassified)...")
+        # Aggregate to count images per class, remapping class "0" to 15 (Unclassified)
+        print("Starting aggregation to count images per class, remapping class '0' to 15 (Unclassified)...")
         pipeline = [
             {"$match": query_filter},
             {"$project": {
                 "class": {
                     "$cond": {
-                        "if": {"$eq": ["$class", 0]},
+                        "if": {"$eq": ["$class", "0"]},  # check if class equals string "0"
                         "then": 15,
                         "else": "$class"
                     }
@@ -675,6 +674,7 @@ def image_count_with_class_names(filter_criteria):
             "error": "An error occurred while processing the request",
             "details": str(e)
         }
+
 
 
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
