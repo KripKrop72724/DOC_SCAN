@@ -624,7 +624,7 @@ def image_count_with_class_names(filter_criteria):
         # Add image counts to each class
         for cls in classes:
             cls_id_str = str(cls['id'])
-            cls['image_count'] = class_count_dict.get(cls_id_str, 0)
+            cls['image_count'] = class_count_dict.get(cls_id_str, 15)
 
         # Prepare the output object
         output_object = {
