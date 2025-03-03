@@ -568,28 +568,44 @@ def image_count_with_class_names(filter_criteria):
     Fetch image count and class details based on filter criteria.
     Documents with class 0 are remapped to class 15 ("Unclassified").
     Optimized with MongoDB indexing for faster query execution.
+    Detailed print statements are added for debugging purposes.
     """
     try:
-        # Establish MongoDB connection
-        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
+        print("Establishing MongoDB connection...")
+        my_client = MongoClient(
+            DB_URL % (DB_USERNAME, DB_PASSWORD),
+            unicode_decode_error_handler='ignore'
+        )
         collection = my_client["DOC_SCAN"]
         doc = collection['DOCUMENTS']
 
         # Prepare the query filter
+        print("Preparing query filter based on provided filter_criteria...")
+        print(f"Input filter_criteria: {filter_criteria}")
         has_mrt = False
         query_filter = {"is_del": False}
+
         if filter_criteria.get("mrno"):
             query_filter["mrno"] = filter_criteria["mrno"]
+            print(f"Adding mrno filter: {filter_criteria['mrno']}")
             has_mrt = check_mortality(query_filter["mrno"])
+            print(f"Mortality check for mrno {filter_criteria['mrno']} returned: {has_mrt}")
         if filter_criteria.get("admission_id"):
             query_filter["admission_id"] = filter_criteria["admission_id"]
+            print(f"Adding admission_id filter: {filter_criteria['admission_id']}")
         if filter_criteria.get("visit_id_op"):
             query_filter["visit_id_op"] = filter_criteria["visit_id_op"]
+            print(f"Adding visit_id_op filter: {filter_criteria['visit_id_op']}")
+
+        print("Final query filter to be used in MongoDB query:")
+        print(query_filter)
 
         # Count total images based on the filter
         image_count = doc.count_documents(query_filter)
+        print(f"Total image count for the given filter: {image_count}")
 
         # Aggregate to count images per class, remapping class 0 to 15 (Unclassified)
+        print("Starting aggregation to count images per class, remapping class 0 to 15 (Unclassified)...")
         pipeline = [
             {"$match": query_filter},
             {"$project": {
@@ -604,9 +620,13 @@ def image_count_with_class_names(filter_criteria):
             {"$group": {"_id": "$class", "count": {"$sum": 1}}}
         ]
         class_counts = list(doc.aggregate(pipeline))
+        print("Aggregation complete. Raw class counts:")
+        print(class_counts)
 
         # Create a dictionary for quick class ID to count mapping
         class_count_dict = {str(item['_id']): item['count'] for item in class_counts}
+        print("Constructed class_count_dict from aggregation:")
+        print(class_count_dict)
 
         # Define class details (make sure the default "Unclassified" id is 15)
         classes = [
@@ -626,11 +646,16 @@ def image_count_with_class_names(filter_criteria):
             {"name": "Personalized Document", "id": 14},
             {"name": "Unclassified", "id": 15}
         ]
+        print("Defined class details (expected class IDs and names):")
+        for cls in classes:
+            print(f"  Class: {cls['name']} (ID: {cls['id']})")
 
         # Add image counts to each class based on the mapping
+        print("Mapping aggregated counts to predefined classes...")
         for cls in classes:
             cls_id_str = str(cls['id'])
             cls['image_count'] = class_count_dict.get(cls_id_str, 0)
+            print(f"  Class {cls['name']} (ID: {cls['id']}) has image_count: {cls['image_count']}")
 
         # Prepare the output object
         output_object = {
@@ -638,6 +663,8 @@ def image_count_with_class_names(filter_criteria):
             "mrt": has_mrt,
             "classes": classes
         }
+        print("Final output object prepared:")
+        print(output_object)
 
         return output_object
 
@@ -648,7 +675,6 @@ def image_count_with_class_names(filter_criteria):
             "error": "An error occurred while processing the request",
             "details": str(e)
         }
-
 
 
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
