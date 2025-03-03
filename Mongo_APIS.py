@@ -566,6 +566,7 @@ def bulk_viewer(mr_no):
 def image_count_with_class_names(filter_criteria):
     """
     Fetch image count and class details based on filter criteria.
+    Documents with class 0 are remapped to class 15 ("Unclassified").
     Optimized with MongoDB indexing for faster query execution.
     """
     try:
@@ -588,13 +589,18 @@ def image_count_with_class_names(filter_criteria):
         # Count total images based on the filter
         image_count = doc.count_documents(query_filter)
 
-        # Check if any documents have mrt=True
-        # has_mrt = doc.find_one({**query_filter, "mrt": True}) is not None
-
-
-        # Aggregate to count images per class
+        # Aggregate to count images per class, remapping class 0 to 15 (Unclassified)
         pipeline = [
             {"$match": query_filter},
+            {"$project": {
+                "class": {
+                    "$cond": {
+                        "if": {"$eq": ["$class", 0]},
+                        "then": 15,
+                        "else": "$class"
+                    }
+                }
+            }},
             {"$group": {"_id": "$class", "count": {"$sum": 1}}}
         ]
         class_counts = list(doc.aggregate(pipeline))
@@ -602,7 +608,7 @@ def image_count_with_class_names(filter_criteria):
         # Create a dictionary for quick class ID to count mapping
         class_count_dict = {str(item['_id']): item['count'] for item in class_counts}
 
-        # Define class details
+        # Define class details (make sure the default "Unclassified" id is 15)
         classes = [
             {"name": "Admission Orders", "id": 1},
             {"name": "Face Sheet", "id": 13},
@@ -621,7 +627,7 @@ def image_count_with_class_names(filter_criteria):
             {"name": "Unclassified", "id": 15}
         ]
 
-        # Add image counts to each class
+        # Add image counts to each class based on the mapping
         for cls in classes:
             cls_id_str = str(cls['id'])
             cls['image_count'] = class_count_dict.get(cls_id_str, 0)
@@ -629,7 +635,7 @@ def image_count_with_class_names(filter_criteria):
         # Prepare the output object
         output_object = {
             "image_count": image_count,
-            "mrt": True if has_mrt else False,
+            "mrt": has_mrt,
             "classes": classes
         }
 
@@ -638,7 +644,11 @@ def image_count_with_class_names(filter_criteria):
     except Exception as e:
         # Log the error for debugging
         print(f"Error in image_count_with_class_names: {e}")
-        return {"error": "An error occurred while processing the request", "details": str(e)}
+        return {
+            "error": "An error occurred while processing the request",
+            "details": str(e)
+        }
+
 
 
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
