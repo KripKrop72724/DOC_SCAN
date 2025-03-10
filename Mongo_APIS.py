@@ -676,15 +676,18 @@ def image_count_with_class_names(filter_criteria):
         }
 
 
-
 def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, visit_id_op=None):
     """
     Retrieve images filtered by mrno, admission_id, visit_id_op, and class.
+    If class_filter is 15, include documents with class "15" or class "0".
     Optimized with MongoDB indexing for faster query execution.
     """
     try:
         # Connect to MongoDB
-        my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD), unicode_decode_error_handler='ignore')
+        my_client = MongoClient(
+            DB_URL % (DB_USERNAME, DB_PASSWORD),
+            unicode_decode_error_handler='ignore'
+        )
         collection = my_client["DOC_SCAN"]
         doc = collection['DOCUMENTS']
 
@@ -696,8 +699,13 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
             query_filter["admission_id"] = admission_id
         if visit_id_op:
             query_filter["visit_id_op"] = visit_id_op
+
         if class_filter:
-            query_filter["class"] = class_filter
+            # If the class filter is 15, include documents where class is either "15" or "0"
+            if str(class_filter) == "15":
+                query_filter["$or"] = [{"class": "15"}, {"class": "0"}]
+            else:
+                query_filter["class"] = class_filter
 
         # Use MongoDB cursor with projection
         cur = doc.find(query_filter, {"doc_id": 1, "doc": 1}).batch_size(100)
@@ -725,6 +733,7 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
             "message": "An error occurred while processing the request.",
             "error": str(e)
         }
+
 
 
 # def get_images_by_class_thumb(mr_no, class_filter):
