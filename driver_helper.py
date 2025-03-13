@@ -16,9 +16,9 @@ class Object:
 
 
 def clear_crap(folder_path):
-    folder = folder_path
-    for filename in os.listdir(folder):
-        file_path = os.path.join(folder, filename)
+    """Delete all files and directories in the given folder."""
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
                 os.unlink(file_path)
