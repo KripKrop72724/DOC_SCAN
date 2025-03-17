@@ -365,22 +365,31 @@ def route_function_mrt_upload_bulk():
 @app.route("/save", methods=["POST"])
 @jwt_required()
 def route_function_save():
+    # Get JSON data directly from the request
     data_to_be_saved = request.get_json()
-    # print(data_to_be_saved)
-    d = json.dumps(data_to_be_saved)
-    loaded = json.loads(d)
+    loaded = data_to_be_saved  # No need for dumping and loading again
     print(loaded)
-    for i in (loaded["scannedImages"]["scannerImages"]):
-        imgdata = base64.b64decode((i["base64"])[1:])
-        filename = str(
-            doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
+
+    for i in loaded["scannedImages"]["scannerImages"]:
+        # Extract the base64 string
+        base64_str = i["base64"]
+        # Check if it's a data URL and extract the base64 part if so
+        if base64_str.startswith("data:"):
+            base64_str = base64_str.split(",", 1)[1]
+        # Decode the base64 string
+        imgdata = base64.b64decode(base64_str)
+
+        # Save the image to a file
+        filename = str(doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
         with open(filename, 'wb') as f:
             f.write(imgdata)
-        im = Image.open(filename)
 
+        # Open and process the image
+        im = Image.open(filename)
         image_bytes = io.BytesIO()
         im.save(image_bytes, format='JPEG')
 
+        # Prepare the image document for MongoDB
         image = {
             'doc_id': int(str(filename).split('.')[0]),
             'doc': image_bytes.getvalue(),
@@ -407,15 +416,18 @@ def route_function_save():
             'is_del': False,
             'rc_by_id': None
         }
-        my_client = MongoClient()
+
+        # Connect to MongoDB and insert the document
         my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
         collection = my_client["DOC_SCAN"]
-        doc_id = collection['AUTH']
         doc = collection['DOCUMENTS']
         image_id = doc.insert_one(image).inserted_id
+
+    # Clean up temporary image files
     for img in glob.glob("*.jpg"):
         print("removing " + img)
         os.remove(img)
+
     return "saved"
 
 
