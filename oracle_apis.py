@@ -9,6 +9,7 @@ from MONGO_CRED import dsn_tns
 
 
 def ipd_patient_details(m):
+    # Initialize the list with a template dictionary
     admission_details = [
         {
             'complain': u'',
@@ -19,20 +20,46 @@ def ipd_patient_details(m):
             'doctor_name': u''
         }
     ]
-    cursor = dsn_tns.cursor()
-    # lis = list()
-    mr = m
-    mr = "'" + mr + "'"
-    query = "SELECT initcap(cn.pc) pc, a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant from ADMISSION.TBL_ADMISSION A, emr.const_notes         CN, doctors                 d, specialities            sp WHERE a.pk_str_admission_id = cn.id_ and a.fk_int_admitting_dr_id = d.doctor_id and d.primary_speciality_id = sp.speciality_id and a.mr# = " + mr + " and cn.pc is not null group by initcap(cn.pc), a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant  ORDER BY a.fld_dat_adm_date DESC;"
-    for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['complain', 'admission_ID', 'admission_date', 'speciality',
-                                      'doctor_ID', 'doctor_name'], )
-        print(df)
-        # d = str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[:-6]
 
+    # Create a database cursor
+    cursor = dsn_tns.cursor()
+
+    # Prepare the medical record number for the query
+    mr = "'" + m + "'"
+
+    # Updated SQL query with TO_DATE for correct date ordering
+    query = """
+    SELECT initcap(cn.pc) pc, 
+           a.pk_str_admission_id, 
+           a.fld_dat_adm_date, 
+           sp.speciality_name, 
+           d.doctor_id, 
+           d.consultant 
+    FROM ADMISSION.TBL_ADMISSION A, 
+         emr.const_notes CN, 
+         doctors d, 
+         specialities sp 
+    WHERE a.pk_str_admission_id = cn.id_ 
+      AND a.fk_int_admitting_dr_id = d.doctor_id 
+      AND d.primary_speciality_id = sp.speciality_id 
+      AND a.mr# = {} 
+      AND cn.pc IS NOT NULL 
+    GROUP BY initcap(cn.pc), 
+             a.pk_str_admission_id, 
+             a.fld_dat_adm_date, 
+             sp.speciality_name, 
+             d.doctor_id, 
+             d.consultant 
+    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
+    """.format(mr)
+
+    # Execute the query and process each row
+    for row in cursor.execute(query):
+        # Create a DataFrame for the row with labeled columns
+        df = pd.DataFrame(row, index=['complain', 'admission_ID', 'admission_date', 'speciality',
+                                      'doctor_ID', 'doctor_name'])
+
+        # Map row values to a dictionary
         query_result = {
             'complain': df.iloc[0][0],
             'admission_ID': df.iloc[1][0],
@@ -41,10 +68,14 @@ def ipd_patient_details(m):
             'doctor_ID': df.iloc[4][0],
             'doctor_name': df.iloc[5][0]
         }
+
+        # Append the dictionary to the list
         admission_details.append(query_result)
+
+    # Remove the initial template dictionary
     admission_details.pop(0)
-    print(admission_details)
-    print(len(admission_details))
+
+    # Return the results or an error message
     if len(admission_details) > 0:
         return admission_details
     else:
