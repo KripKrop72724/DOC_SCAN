@@ -159,23 +159,41 @@ def ipd_patient_details_dates_only(m):
         }
     ]
     cursor = dsn_tns.cursor()
-    # lis = list()
-    mr = m
-    mr = "'" + mr + "'"
-    query = "SELECT initcap(cn.pc) pc, a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant from ADMISSION.TBL_ADMISSION A, emr.const_notes         CN, doctors                 d, specialities            sp WHERE a.pk_str_admission_id = cn.id_ and a.fk_int_admitting_dr_id = d.doctor_id and d.primary_speciality_id = sp.speciality_id and a.mr# = " + mr + " and cn.pc is not null group by initcap(cn.pc), a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant"
+    mr = "'" + m + "'"
+    query = """
+    SELECT initcap(cn.pc) pc, 
+           a.pk_str_admission_id, 
+           a.fld_dat_adm_date, 
+           sp.speciality_name, 
+           d.doctor_id, 
+           d.consultant 
+    FROM ADMISSION.TBL_ADMISSION A, 
+         emr.const_notes CN, 
+         doctors d, 
+         specialities sp 
+    WHERE a.pk_str_admission_id = cn.id_ 
+      AND a.fk_int_admitting_dr_id = d.doctor_id 
+      AND d.primary_speciality_id = sp.speciality_id 
+      AND a.mr# = {} 
+      AND cn.pc IS NOT NULL 
+    GROUP BY initcap(cn.pc), 
+             a.pk_str_admission_id, 
+             a.fld_dat_adm_date, 
+             sp.speciality_name, 
+             d.doctor_id, 
+             d.consultant 
+    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC
+    """.format(mr)
+
     for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['complain', 'admission_ID', 'admission_date', 'speciality',
-                                      'doctor_ID', 'doctor_name'], )
-        # print(df)
-        # d = str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[:-6]
+        df = pd.DataFrame([row], columns=['complain', 'admission_ID', 'admission_date', 'speciality', 'doctor_ID',
+                                          'doctor_name'])
         query_result = {
-            'admission_ID': df.iloc[1][0],
-            'admission_date': df.iloc[2][0]
+            'admission_ID': df['admission_ID'].iloc[0],
+            'admission_date': df['admission_date'].iloc[0]
         }
         admission_details.append(query_result)
+
     admission_details.pop(0)
     print(admission_details)
     print(len(admission_details))
