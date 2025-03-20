@@ -245,13 +245,19 @@ def bring_users_data():
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
     collection = my_client["DOC_SCAN"]
     doc_id = collection['VIEWER_AUTH']
-    cursor = doc_id.find({}, {'_id': False,
-                              'PASSWORD': False,
-                              'password_changed': False,
-                              'total_images_scanned': False,
-                              })
+    cursor = doc_id.find({}, {
+        '_id': False,
+        'PASSWORD': False,
+        'password_changed': False,
+        'total_images_scanned': False,
+    })
     data = []
     for document in cursor:
+        # Ensure that both keys exist, defaulting to False if missing.
+        if 'is_ot_scanner' not in document:
+            document['is_ot_scanner'] = False
+        if 'is_ot_viewer' not in document:
+            document['is_ot_viewer'] = False
         data.append(document)
     res = {
         "data": data,
