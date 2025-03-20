@@ -658,6 +658,8 @@ def create_scanners():
     emp_id = str(loaded['emp_id'])
     is_scanner = bool(loaded['is_scanner'])
     is_viewer = bool(loaded['is_viewer'])
+    is_ot_scanner = bool(loaded['is_ot_scanner'])
+    is_ot_viewer = bool(loaded['is_ot_viewer'])
     is_admin = False
     email = str(loaded['email'])
     is_active = True
@@ -677,6 +679,8 @@ def create_scanners():
         "is_active": is_active,
         "is_scanner": is_scanner,
         "is_viewer": is_viewer,
+        "is_ot_scanner": is_ot_scanner,
+        "is_ot_viewer": is_ot_viewer,
         "last_login": '',
         "last_logout": '',
         "password_changed": pass_changed,
