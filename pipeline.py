@@ -71,42 +71,48 @@ def login_rolebase():
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
     collection = my_client["DOC_SCAN"]
     doc_id = collection['VIEWER_AUTH']
-    user_from_db = doc_id.find_one({'USERNAME': str(login_details['USERNAME']).upper()})  # search for user in database
+    user_from_db = doc_id.find_one({'USERNAME': str(login_details['USERNAME']).upper()})
     print(user_from_db)
     if user_from_db:
         print("-------------------------------------------------------------------------")
         encrpted_password = login_details['PASSWORD'].encode("utf-8")
         print(encrpted_password)
         print(user_from_db['PASSWORD'])
-        if bc.checkpw(encrpted_password, user_from_db['PASSWORD'].encode("utf-8")) and user_from_db[
-            'is_active'] is True:
-            access_token = create_access_token(identity=user_from_db['USERNAME'])  # create jwt token
-            doc_id.update_one({'USERNAME': str(login_details['USERNAME']).upper()},
-                              {"$set": {"last_login": str(datetime.datetime.now())}})
-            return jsonify({"access_token": access_token,
-                            "name": user_from_db['name'],
-                            "is_admin": user_from_db['is_admin'],
-                            "is_active": user_from_db['is_active'],
-                            "is_scanner": user_from_db['is_scanner'],
-                            "is_viewer": user_from_db['is_viewer'],
-                            "last_login": user_from_db['last_login'],
-                            "last_logout": user_from_db['last_logout'],
-                            "password_changed": user_from_db['password_changed'],
-                            "emp_id": user_from_db['emp_id'],
-                            "email": user_from_db['email'],
-                            "total_images_scanned": user_from_db['total_images_scanned'],
-                            "image": user_from_db['image'],
-                            "status": True
-                            }), 200, {"Access-Control-Allow-Origin": '*'}
+        if bc.checkpw(encrpted_password, user_from_db['PASSWORD'].encode("utf-8")) and user_from_db['is_active'] is True:
+            access_token = create_access_token(identity=user_from_db['USERNAME'])
+            doc_id.update_one(
+                {'USERNAME': str(login_details['USERNAME']).upper()},
+                {"$set": {"last_login": str(datetime.datetime.now())}}
+            )
+            return jsonify({
+                "access_token": access_token,
+                "name": user_from_db['name'],
+                "is_admin": user_from_db['is_admin'],
+                "is_active": user_from_db['is_active'],
+                "is_scanner": user_from_db['is_scanner'],
+                "is_viewer": user_from_db['is_viewer'],
+                "is_ot_scanner": user_from_db.get('is_ot_scanner', False),
+                "is_ot_viewer": user_from_db.get('is_ot_viewer', False),
+                "last_login": user_from_db['last_login'],
+                "last_logout": user_from_db['last_logout'],
+                "password_changed": user_from_db['password_changed'],
+                "emp_id": user_from_db['emp_id'],
+                "email": user_from_db['email'],
+                "total_images_scanned": user_from_db['total_images_scanned'],
+                "image": user_from_db['image'],
+                "status": True
+            }), 200, {"Access-Control-Allow-Origin": '*'}
 
     if user_from_db['is_active'] is False:
-        return jsonify({'msg': 'you have been deactivated by the admin',
-                        "status": False
-                        }), 401
+        return jsonify({
+            'msg': 'you have been deactivated by the admin',
+            "status": False
+        }), 401
     else:
-        return jsonify({'msg': 'Username of password is incorrect',
-                        "status": False
-                        }), 401
+        return jsonify({
+            'msg': 'Username or password is incorrect',
+            "status": False
+        }), 401
 
 
 @app.after_request
