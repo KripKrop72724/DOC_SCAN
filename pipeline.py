@@ -68,17 +68,31 @@ def login():
 def login_rolebase():
     login_details = request.get_json()
     print(login_details)
+
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
     collection = my_client["DOC_SCAN"]
     doc_id = collection['VIEWER_AUTH']
+
+    # Retrieve the user document
     user_from_db = doc_id.find_one({'USERNAME': str(login_details['USERNAME']).upper()})
     print(user_from_db)
-    if user_from_db:
-        print("-------------------------------------------------------------------------")
-        encrpted_password = login_details['PASSWORD'].encode("utf-8")
-        print(encrpted_password)
-        print(user_from_db['PASSWORD'])
-        if bc.checkpw(encrpted_password, user_from_db['PASSWORD'].encode("utf-8")) and user_from_db['is_active'] is True:
+
+    # Check if the user exists
+    if not user_from_db:
+        return jsonify({
+            'msg': 'Username or password is incorrect',
+            "status": False
+        }), 401
+
+    print("-------------------------------------------------------------------------")
+    encrypted_password = login_details['PASSWORD'].encode("utf-8")
+    print(encrypted_password)
+    print(user_from_db['PASSWORD'])
+
+    # Verify the password
+    if bc.checkpw(encrypted_password, user_from_db['PASSWORD'].encode("utf-8")):
+        # Check if the account is active
+        if user_from_db['is_active'] is True:
             access_token = create_access_token(identity=user_from_db['USERNAME'])
             doc_id.update_one(
                 {'USERNAME': str(login_details['USERNAME']).upper()},
@@ -102,12 +116,11 @@ def login_rolebase():
                 "image": user_from_db['image'],
                 "status": True
             }), 200, {"Access-Control-Allow-Origin": '*'}
-
-    if user_from_db['is_active'] is False:
-        return jsonify({
-            'msg': 'you have been deactivated by the admin',
-            "status": False
-        }), 401
+        else:
+            return jsonify({
+                'msg': 'You have been deactivated by the admin',
+                "status": False
+            }), 401
     else:
         return jsonify({
             'msg': 'Username or password is incorrect',
