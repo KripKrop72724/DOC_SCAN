@@ -662,7 +662,7 @@ def create_scanners():
 
     # Extract and convert fields from the input
     name = str(loaded['name'])
-    password = "$2b$10$eZXqe1XtndtvuOFdYqKHneX5XY6bIX7.88Jx8VzowVciB4Y.3ssTu"
+    password = "$2a$10$TEYwksLM72v9pgqicMbVuegAMdPrLpD8c0bexVjww/nwyfsyS5krC" #shifa123 by default
     emp_id = str(loaded['emp_id'])
     is_scanner = bool(loaded['is_scanner'])
     is_viewer = bool(loaded['is_viewer'])
