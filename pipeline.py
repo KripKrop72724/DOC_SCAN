@@ -653,12 +653,14 @@ def bring_all_users():
 @app.route("/mrd/create_scanner_user", methods=["POST"])
 @jwt_required()
 def create_scanners():
+    # Get the JSON payload
     data_to_be_saved = request.get_json()
-    # print(data_to_be_saved)
-    d = json.dumps(data_to_be_saved)
-    loaded = json.loads(d)
-    print(loaded)
+    print(data_to_be_saved)
 
+    # Directly use the received JSON data
+    loaded = data_to_be_saved
+
+    # Extract and convert fields from the input
     name = str(loaded['name'])
     password = "$2b$10$eZXqe1XtndtvuOFdYqKHneX5XY6bIX7.88Jx8VzowVciB4Y.3ssTu"
     emp_id = str(loaded['emp_id'])
@@ -669,14 +671,13 @@ def create_scanners():
     is_admin = False
     email = str(loaded['email'])
     is_active = True
-    last_login = str('')
-    last_logout = str('')
+    last_login = ''
+    last_logout = ''
     pass_changed = False
     total_images_scanned = 0
     image = str(loaded['image'])
-    my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
-    collection = my_client["DOC_SCAN"]
-    doc_id = collection['VIEWER_AUTH']
+
+    # Create the document to insert/update in the DB
     ob = {
         'name': name,
         'USERNAME': emp_id,
@@ -687,25 +688,30 @@ def create_scanners():
         "is_viewer": is_viewer,
         "is_ot_scanner": is_ot_scanner,
         "is_ot_viewer": is_ot_viewer,
-        "last_login": '',
-        "last_logout": '',
+        "last_login": last_login,
+        "last_logout": last_logout,
         "password_changed": pass_changed,
         "emp_id": emp_id,
         "email": email,
-        "total_images_scanned": {
-            "$numberLong": "0"
-        },
+        "total_images_scanned": {"$numberLong": "0"},
         "image": image
     }
 
+    # Connect to the MongoDB collection
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
     collection = my_client["DOC_SCAN"]
     doc_id = collection['VIEWER_AUTH']
-    if doc_id.find_one({"emp_id": emp_id}) is None:
+
+    # Check if the user already exists using emp_id
+    existing_user = doc_id.find_one({"emp_id": emp_id})
+    if existing_user is None:
+        # Insert a new document if no existing user is found
         doc_id.insert_one(ob)
-        return {'msg': "Success", 'status': 200}
+        return {'msg': "User created successfully", 'status': 200}
     else:
-        return {'msg': "Either the user is disabled or already created", 'status': 0}
+        # Update the existing document with the new data
+        doc_id.update_one({"emp_id": emp_id}, {"$set": ob})
+        return {'msg': "User updated successfully", 'status': 200}
 
 
 @app.route("/mrd/reset_pass", methods=["POST"])
