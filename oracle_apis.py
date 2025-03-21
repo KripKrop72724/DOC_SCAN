@@ -9,32 +9,15 @@ from MONGO_CRED import dsn_tns
 
 
 def ipd_patient_details(m):
-    # Initialize the list with a template dictionary
-    admission_details = [
-        {
-            'complain': u'',
-            'admission_ID': u'',
-            'admission_date': u'',
-            'speciality': False,
-            'doctor_ID': False,
-            'doctor_name': u''
-        }
-    ]
-
-    # Create a database cursor
     cursor = dsn_tns.cursor()
 
-    # Prepare the medical record number for the query
-    mr = "'" + m + "'"
-
-    # Updated SQL query with TO_DATE for correct date ordering
     query = """
-    SELECT initcap(cn.pc) pc, 
-           a.pk_str_admission_id, 
-           a.fld_dat_adm_date, 
-           sp.speciality_name, 
-           d.doctor_id, 
-           d.consultant 
+    SELECT initcap(cn.pc) AS complain, 
+           a.pk_str_admission_id AS admission_ID, 
+           a.fld_dat_adm_date AS admission_date, 
+           sp.speciality_name AS speciality, 
+           d.doctor_id AS doctor_ID, 
+           d.consultant AS doctor_name
     FROM ADMISSION.TBL_ADMISSION A, 
          emr.const_notes CN, 
          doctors d, 
@@ -42,7 +25,7 @@ def ipd_patient_details(m):
     WHERE a.pk_str_admission_id = cn.id_ 
       AND a.fk_int_admitting_dr_id = d.doctor_id 
       AND d.primary_speciality_id = sp.speciality_id 
-      AND a.mr# = {} 
+      AND a.mr# = :mr 
       AND cn.pc IS NOT NULL 
     GROUP BY initcap(cn.pc), 
              a.pk_str_admission_id, 
@@ -50,33 +33,24 @@ def ipd_patient_details(m):
              sp.speciality_name, 
              d.doctor_id, 
              d.consultant 
-    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
-    """.format(mr)
+    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC
+    """
 
-    # Execute the query and process each row
-    for row in cursor.execute(query):
-        # Create a DataFrame for the row with labeled columns
-        df = pd.DataFrame(row, index=['complain', 'admission_ID', 'admission_date', 'speciality',
-                                      'doctor_ID', 'doctor_name'])
+    cursor.execute(query, mr=m)
 
-        # Map row values to a dictionary
+    admission_details = []
+    for row in cursor:
         query_result = {
-            'complain': df.iloc[0][0],
-            'admission_ID': df.iloc[1][0],
-            'admission_date': df.iloc[2][0],
-            'speciality': df.iloc[3][0],
-            'doctor_ID': df.iloc[4][0],
-            'doctor_name': df.iloc[5][0]
+            'complain': row[0],
+            'admission_ID': row[1],
+            'admission_date': row[2],
+            'speciality': row[3],
+            'doctor_ID': row[4],
+            'doctor_name': row[5]
         }
-
-        # Append the dictionary to the list
         admission_details.append(query_result)
 
-    # Remove the initial template dictionary
-    admission_details.pop(0)
-
-    # Return the results or an error message
-    if len(admission_details) > 0:
+    if admission_details:
         return admission_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
