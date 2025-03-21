@@ -177,6 +177,56 @@ def ipd_patient_details_dates_only(m):
         return {"Error": "Either the record was not available or there was an error"}
 
 
+def ipd_patient_details_without_complain(m):
+    # Initialize an empty list to hold the admission details
+    admission_details = []
+
+    # Create a database cursor from the existing connection (dsn_tns)
+    cursor = dsn_tns.cursor()
+
+    # Prepare the medical record number for the query (wrap in quotes)
+    mr = "'" + m + "'"
+
+    # Updated SQL query without using emr.const_notes
+    query = """
+    SELECT a.pk_str_admission_id, 
+           a.fld_dat_adm_date, 
+           sp.speciality_name, 
+           d.doctor_id, 
+           d.consultant 
+    FROM ADMISSION.TBL_ADMISSION A, 
+         doctors d, 
+         specialities sp 
+    WHERE a.fk_int_admitting_dr_id = d.doctor_id 
+      AND d.primary_speciality_id = sp.speciality_id 
+      AND a.mr# = {} 
+    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
+    """.format(mr)
+
+    # Execute the query and process each row
+    for row in cursor.execute(query):
+        # Create a DataFrame for the row with labeled columns.
+        # The query returns 5 columns in the following order:
+        # admission_ID, admission_date, speciality, doctor_ID, consultant
+        df = pd.DataFrame(row, index=['admission_ID', 'admission_date', 'speciality', 'doctor_ID', 'consultant'])
+
+        # Map the DataFrame values to a dictionary
+        query_result = {
+            'admission_ID': df.iloc[0][0],
+            'admission_date': df.iloc[1][0],
+            'speciality': df.iloc[2][0],
+            'doctor_ID': df.iloc[3][0],
+            'consultant': df.iloc[4][0]
+        }
+        admission_details.append(query_result)
+
+    # Return the results if found; otherwise, return an error message
+    if admission_details:
+        return admission_details
+    else:
+        return {"Error": "Either the record was not available or there was an error"}
+
+
 def opd_patient_details(m):
     visit_details = [
         {

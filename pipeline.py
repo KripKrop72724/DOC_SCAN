@@ -169,7 +169,7 @@ def welcs():
 @jwt_required()
 def Route_Function_Ipd():
     mr = str(request.args.get('mr'))
-    route_object = oracle_apis.ipd_patient_details(mr)
+    route_object = oracle_apis.ipd_patient_details_without_complain(mr)
     return route_object
 
 
