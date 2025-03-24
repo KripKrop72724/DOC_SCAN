@@ -187,7 +187,8 @@ def ipd_patient_details_without_complain(m):
     # Prepare the medical record number for the query (wrap in quotes)
     mr = "'" + m + "'"
 
-    # Updated SQL query without using emr.const_notes
+    # Updated SQL query using LEFT JOINs so that the main admission records are always returned,
+    # even if supporting details in the doctors or specialities tables are missing.
     query = """
     SELECT a.pk_str_admission_id, 
            a.fld_dat_adm_date, 
@@ -203,18 +204,14 @@ def ipd_patient_details_without_complain(m):
 
     # Execute the query and process each row
     for row in cursor.execute(query):
-        # Create a DataFrame for the row with labeled columns.
-        # The query returns 5 columns in the following order:
-        # admission_ID, admission_date, speciality, doctor_ID, consultant
-        df = pd.DataFrame(row, index=['admission_ID', 'admission_date', 'speciality', 'doctor_ID', 'consultant'])
-
-        # Map the DataFrame values to a dictionary
+        # Since we may get None values for missing supporting details,
+        # we use a default empty string if a column is None.
         query_result = {
-            'admission_ID': df.iloc[0][0],
-            'admission_date': df.iloc[1][0],
-            'speciality': df.iloc[2][0],
-            'doctor_ID': df.iloc[3][0],
-            'consultant': df.iloc[4][0]
+            'admission_ID': row[0],
+            'admission_date': row[1],
+            'speciality': row[2] if row[2] is not None else '',
+            'doctor_ID': row[3] if row[3] is not None else '',
+            'consultant': row[4] if row[4] is not None else ''
         }
         admission_details.append(query_result)
 
@@ -223,6 +220,7 @@ def ipd_patient_details_without_complain(m):
         return admission_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
+
 
 
 def opd_patient_details(m):
