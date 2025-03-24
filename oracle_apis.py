@@ -194,12 +194,10 @@ def ipd_patient_details_without_complain(m):
            sp.speciality_name, 
            d.doctor_id, 
            d.consultant 
-    FROM ADMISSION.TBL_ADMISSION A, 
-         doctors d, 
-         specialities sp 
-    WHERE a.fk_int_admitting_dr_id = d.doctor_id 
-      AND d.primary_speciality_id = sp.speciality_id 
-      AND a.mr# = {} 
+    FROM ADMISSION.TBL_ADMISSION A
+    LEFT JOIN doctors d ON a.fk_int_admitting_dr_id = d.doctor_id
+    LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
+    WHERE a.mr# = {}
     ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
     """.format(mr)
 
