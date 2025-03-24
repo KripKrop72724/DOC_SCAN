@@ -187,25 +187,22 @@ def ipd_patient_details_without_complain(m):
     # Prepare the medical record number for the query (wrap in quotes)
     mr = "'" + m + "'"
 
-    # Updated SQL query using LEFT JOINs so that the main admission records are always returned,
-    # even if supporting details in the doctors or specialities tables are missing.
+    # Updated SQL query using LEFT JOINs with alias 'adm'
     query = """
-    SELECT a.pk_str_admission_id, 
-           a.fld_dat_adm_date, 
+    SELECT adm.pk_str_admission_id, 
+           adm.fld_dat_adm_date, 
            sp.speciality_name, 
            d.doctor_id, 
            d.consultant 
-    FROM ADMISSION.TBL_ADMISSION A
-    LEFT JOIN doctors d ON a.fk_int_admitting_dr_id = d.doctor_id
+    FROM ADMISSION.TBL_ADMISSION adm
+    LEFT JOIN doctors d ON adm.fk_int_admitting_dr_id = d.doctor_id
     LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
-    WHERE a.mr# = {}
-    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
+    WHERE adm.mr# = {}
+    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
     """.format(mr)
 
     # Execute the query and process each row
     for row in cursor.execute(query):
-        # Since we may get None values for missing supporting details,
-        # we use a default empty string if a column is None.
         query_result = {
             'admission_ID': row[0],
             'admission_date': row[1],
@@ -220,7 +217,6 @@ def ipd_patient_details_without_complain(m):
         return admission_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
-
 
 
 def opd_patient_details(m):
