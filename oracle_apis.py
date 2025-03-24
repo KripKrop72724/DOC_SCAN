@@ -198,7 +198,7 @@ def ipd_patient_details_without_complain(m):
     LEFT JOIN doctors d ON adm.fk_int_admitting_dr_id = d.doctor_id
     LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
     WHERE adm.mr# = {}
-    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC;
+    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
     """.format(mr)
 
     # Execute the query and process each row
