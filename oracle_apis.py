@@ -208,7 +208,7 @@ def ipd_patient_details_without_complain(m):
             'admission_date': row[1],
             'speciality': row[2] if row[2] is not None else '',
             'doctor_ID': row[3] if row[3] is not None else '',
-            'consultant': row[4] if row[4] is not None else ''
+            'doctor_name': row[4] if row[4] is not None else ''
         }
         admission_details.append(query_result)
 
