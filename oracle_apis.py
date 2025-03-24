@@ -75,13 +75,49 @@ def check_mortality(mr):
 
 
 def ipd_patient_details_with_date(date, m):
-    month = date[3:5]
-    month = int(month)
+    import calendar
+    import pandas as pd
+
+    # Reformat the date as in your original code.
+    # For example, if date = "23/04/2025", then:
+    #   date[0:3] is "23/", date[3:5] is "04", and date[-4:] is "2025"
+    month = int(date[3:5])
     nu = calendar.month_name[month]
-    date = str(date[0:3]) + str(nu) + "/" + str(date[-4:])
-    print(month)
-    query = "SELECT initcap(cn.pc) pc, a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant from ADMISSION.TBL_ADMISSION A, emr.const_notes         CN, doctors                 d, specialities            sp WHERE a.pk_str_admission_id = cn.id_ and a.fk_int_admitting_dr_id = d.doctor_id and d.primary_speciality_id = sp.speciality_id and a.mr# = '" + m + "' and cn.pc is not null and trunc(a.fld_dat_adm_date)='" + date + "' group by initcap(cn.pc), a.pk_str_admission_id, a.fld_dat_adm_date, sp.speciality_name, d.doctor_id, d.consultant"
+    # Reassembled date: e.g., "23/April/2025"
+    date_formatted = str(date[0:3]) + str(nu) + "/" + str(date[-4:])
+    print("DEBUG: Reformatted date:", date_formatted)
+
+    # Build the SQL query using LEFT JOIN syntax.
+    # Note: We removed the condition "and cn.pc is not null" so that
+    # admissions without a note are still returned (with complain as NULL).
+    query = """
+    SELECT initcap(cn.pc) AS complain,
+           adm.pk_str_admission_id,
+           adm.fld_dat_adm_date,
+           sp.speciality_name,
+           d.doctor_id,
+           d.consultant
+    FROM ADMISSION.TBL_ADMISSION adm
+    LEFT JOIN emr.const_notes cn
+           ON adm.pk_str_admission_id = cn.id_
+    LEFT JOIN doctors d
+           ON adm.fk_int_admitting_dr_id = d.doctor_id
+    LEFT JOIN specialities sp
+           ON d.primary_speciality_id = sp.speciality_id
+    WHERE adm.mr# = '{m}'
+      AND trunc(adm.fld_dat_adm_date) = '{dte}'
+    GROUP BY initcap(cn.pc),
+             adm.pk_str_admission_id,
+             adm.fld_dat_adm_date,
+             sp.speciality_name,
+             d.doctor_id,
+             d.consultant
+    """.format(m=m, dte=date_formatted)
+
+    print("DEBUG: Executing query:")
     print(query)
+
+    # Initialize the list with a template dictionary (will remove later)
     admission_details = [
         {
             'complain': u'',
@@ -92,33 +128,36 @@ def ipd_patient_details_with_date(date, m):
             'doctor_name': u''
         }
     ]
-    cursor = dsn_tns.cursor()
-    # lis = list()
-    mr = m
-    mr = "'" + mr + "'"
-    for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['complain', 'admission_ID', 'admission_date', 'speciality',
-                                      'doctor_ID', 'doctor_name'], )
-        print(df)
-        # d = str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[2][0]), format="%D/%M/%Y"))[:-9])[:-6]
 
+    # Create a database cursor from the existing connection (dsn_tns)
+    cursor = dsn_tns.cursor()
+
+    # Execute the query and process each row returned by the cursor
+    for row in cursor.execute(query):
+        # Create a DataFrame for this row with labeled columns.
+        df = pd.DataFrame([row], columns=['complain', 'admission_ID', 'admission_date',
+                                          'speciality', 'doctor_ID', 'doctor_name'])
+        print("DEBUG: DataFrame row:")
+        print(df)
         query_result = {
-            'complain': df.iloc[0][0],
-            'admission_ID': df.iloc[1][0],
-            'admission_date': df.iloc[2][0],
-            'speciality': df.iloc[3][0],
-            'doctor_ID': df.iloc[4][0],
-            'doctor_name': df.iloc[5][0]
+            'complain': df['complain'].iloc[0],
+            'admission_ID': df['admission_ID'].iloc[0],
+            'admission_date': df['admission_date'].iloc[0],
+            'speciality': df['speciality'].iloc[0],
+            'doctor_ID': df['doctor_ID'].iloc[0],
+            'doctor_name': df['doctor_name'].iloc[0]
         }
         admission_details.append(query_result)
+
+    # Remove the initial template dictionary
     admission_details.pop(0)
+
+    print("DEBUG: Final admission_details:")
     print(admission_details)
-    print(len(admission_details))
+    print("DEBUG: Number of rows fetched:", len(admission_details))
+
     if len(admission_details) > 0:
-        # Sort admission_details by 'admission_ID'
+        # Sort the list by admission_ID (if desired)
         admission_details.sort(key=lambda x: x['admission_ID'])
         return admission_details
     else:
