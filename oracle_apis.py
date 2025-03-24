@@ -169,32 +169,41 @@ def ipd_patient_details_without_complain(m):
     # Prepare the medical record number for the query (wrap in quotes)
     mr = "'" + m + "'"
 
-    # Updated SQL query using LEFT JOINs with alias 'adm'
+    # Updated SQL query that aggregates (using MAX) the supporting columns
+    # to ensure one row per admission (grouped by admission_ID and admission_date)
     query = """
-    SELECT adm.pk_str_admission_id, 
-           adm.fld_dat_adm_date, 
-           sp.speciality_name, 
-           d.doctor_id, 
-           d.consultant 
+    SELECT 
+        MAX(initcap(cn.pc)) AS complain, 
+        adm.pk_str_admission_id AS admission_ID, 
+        adm.fld_dat_adm_date AS admission_date, 
+        MAX(sp.speciality_name) AS speciality, 
+        MAX(d.doctor_id) AS doctor_ID, 
+        MAX(d.consultant) AS doctor_name
     FROM ADMISSION.TBL_ADMISSION adm
-    LEFT JOIN doctors d ON adm.fk_int_admitting_dr_id = d.doctor_id
-    LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
+    LEFT JOIN emr.const_notes cn 
+           ON adm.pk_str_admission_id = cn.id_
+    LEFT JOIN doctors d 
+           ON adm.fk_int_admitting_dr_id = d.doctor_id
+    LEFT JOIN specialities sp 
+           ON d.primary_speciality_id = sp.speciality_id
     WHERE adm.mr# = {}
+    GROUP BY adm.pk_str_admission_id, adm.fld_dat_adm_date
     ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
     """.format(mr)
 
-    # Execute the query and process each row
+    # Execute the query and process each row returned by the cursor
     for row in cursor.execute(query):
         query_result = {
-            'admission_ID': row[0],
-            'admission_date': row[1],
-            'speciality': row[2] if row[2] is not None else '',
-            'doctor_ID': row[3] if row[3] is not None else '',
-            'doctor_name': row[4] if row[4] is not None else ''
+            'complain': row[0] if row[0] is not None else '',
+            'admission_ID': row[1],
+            'admission_date': row[2],
+            'speciality': row[3] if row[3] is not None else '',
+            'doctor_ID': row[4] if row[4] is not None else '',
+            'doctor_name': row[5] if row[5] is not None else ''
         }
         admission_details.append(query_result)
 
-    # Return the results if found; otherwise, return an error message
+    # Return the results if any are found; otherwise, return an error message
     if admission_details:
         return admission_details
     else:
