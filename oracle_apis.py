@@ -126,52 +126,34 @@ def ipd_patient_details_with_date(date, m):
 
 
 def ipd_patient_details_dates_only(m):
-    admission_details = [
-        {
-            'admission_ID': u'',
-            'admission_date': u'',
-        }
-    ]
+    admission_details = []
     cursor = dsn_tns.cursor()
     mr = "'" + m + "'"
     query = """
-    SELECT initcap(cn.pc) pc, 
-           a.pk_str_admission_id, 
-           a.fld_dat_adm_date, 
-           sp.speciality_name, 
-           d.doctor_id, 
-           d.consultant 
-    FROM ADMISSION.TBL_ADMISSION A, 
-         emr.const_notes CN, 
-         doctors d, 
-         specialities sp 
-    WHERE a.pk_str_admission_id = cn.id_ 
-      AND a.fk_int_admitting_dr_id = d.doctor_id 
-      AND d.primary_speciality_id = sp.speciality_id 
-      AND a.mr# = {} 
-      AND cn.pc IS NOT NULL 
-    GROUP BY initcap(cn.pc), 
-             a.pk_str_admission_id, 
-             a.fld_dat_adm_date, 
-             sp.speciality_name, 
-             d.doctor_id, 
-             d.consultant 
-    ORDER BY TO_DATE(a.fld_dat_adm_date, 'DD/MM/YYYY') DESC
+    SELECT DISTINCT adm.pk_str_admission_id, 
+                    adm.fld_dat_adm_date
+    FROM ADMISSION.TBL_ADMISSION adm
+    LEFT JOIN emr.const_notes cn ON adm.pk_str_admission_id = cn.id_
+    LEFT JOIN doctors d ON adm.fk_int_admitting_dr_id = d.doctor_id
+    LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
+    WHERE adm.mr# = {}
+    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
     """.format(mr)
 
+    # Execute the query and process each row
     for row in cursor.execute(query):
-        df = pd.DataFrame([row], columns=['complain', 'admission_ID', 'admission_date', 'speciality', 'doctor_ID',
-                                          'doctor_name'])
         query_result = {
-            'admission_ID': df['admission_ID'].iloc[0],
-            'admission_date': df['admission_date'].iloc[0]
+            'admission_ID': row[0],
+            'admission_date': row[1]
         }
         admission_details.append(query_result)
 
-    admission_details.pop(0)
+    # Print debugging information
     print(admission_details)
     print(len(admission_details))
-    if len(admission_details) > 0:
+
+    # Return the results if found; otherwise, return an error message
+    if admission_details:
         return admission_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
