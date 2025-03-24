@@ -163,50 +163,62 @@ def ipd_patient_details_without_complain(m):
     # Initialize an empty list to hold the admission details
     admission_details = []
 
-    # Create a database cursor from the existing connection (dsn_tns)
-    cursor = dsn_tns.cursor()
+    try:
+        # Create a database cursor from the existing connection (dsn_tns)
+        cursor = dsn_tns.cursor()
 
-    # Prepare the medical record number for the query (wrap in quotes)
-    mr = "'" + m + "'"
+        # Prepare the medical record number for the query (wrap in quotes)
+        mr = "'" + m + "'"
 
-    # Updated SQL query that aggregates (using MAX) the supporting columns
-    # to ensure one row per admission (grouped by admission_ID and admission_date)
-    query = """
-    SELECT 
-        MAX(initcap(cn.pc)) AS complain, 
-        adm.pk_str_admission_id AS admission_ID, 
-        adm.fld_dat_adm_date AS admission_date, 
-        MAX(sp.speciality_name) AS speciality, 
-        MAX(d.doctor_id) AS doctor_ID, 
-        MAX(d.consultant) AS doctor_name
-    FROM ADMISSION.TBL_ADMISSION adm
-    LEFT JOIN emr.const_notes cn 
-           ON adm.pk_str_admission_id = cn.id_
-    LEFT JOIN doctors d 
-           ON adm.fk_int_admitting_dr_id = d.doctor_id
-    LEFT JOIN specialities sp 
-           ON d.primary_speciality_id = sp.speciality_id
-    WHERE adm.mr# = {}
-    GROUP BY adm.pk_str_admission_id, adm.fld_dat_adm_date
-    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
-    """.format(mr)
+        # Updated SQL query that aggregates the supporting columns (using MAX)
+        # to ensure one row per admission (grouped by admission_ID and admission_date)
+        query = """
+        SELECT 
+            MAX(initcap(cn.pc)) AS complain, 
+            adm.pk_str_admission_id AS admission_ID, 
+            adm.fld_dat_adm_date AS admission_date, 
+            MAX(sp.speciality_name) AS speciality, 
+            MAX(d.doctor_id) AS doctor_ID, 
+            MAX(d.consultant) AS doctor_name
+        FROM ADMISSION.TBL_ADMISSION adm
+        LEFT JOIN emr.const_notes cn 
+               ON adm.pk_str_admission_id = cn.id_
+        LEFT JOIN doctors d 
+               ON adm.fk_int_admitting_dr_id = d.doctor_id
+        LEFT JOIN specialities sp 
+               ON d.primary_speciality_id = sp.speciality_id
+        WHERE adm.mr# = {}
+        GROUP BY adm.pk_str_admission_id, adm.fld_dat_adm_date
+        ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
+        """.format(mr)
 
-    # Execute the query and process each row returned by the cursor
-    for row in cursor.execute(query):
-        query_result = {
-            'complain': row[0] if row[0] is not None else '',
-            'admission_ID': row[1],
-            'admission_date': row[2],
-            'speciality': row[3] if row[3] is not None else '',
-            'doctor_ID': row[4] if row[4] is not None else '',
-            'doctor_name': row[5] if row[5] is not None else ''
-        }
-        admission_details.append(query_result)
+        print("DEBUG: Executing query:")
+        print(query)
 
-    # Return the results if any are found; otherwise, return an error message
+        # Execute the query and process each row returned by the cursor
+        for row in cursor.execute(query):
+            print("DEBUG: Retrieved row:", row)
+            query_result = {
+                'complain': row[0] if row[0] is not None else '',
+                'admission_ID': row[1],
+                'admission_date': row[2],
+                'speciality': row[3] if row[3] is not None else '',
+                'doctor_ID': row[4] if row[4] is not None else '',
+                'doctor_name': row[5] if row[5] is not None else ''
+            }
+            admission_details.append(query_result)
+
+        print("DEBUG: Total rows fetched:", len(admission_details))
+
+    except Exception as e:
+        print("ERROR: Exception occurred while executing query")
+        print("ERROR:", e)
+
+    # Return the results if any are found; otherwise, log and return an error message
     if admission_details:
         return admission_details
     else:
+        print("DEBUG: No records found for MR:", m)
         return {"Error": "Either the record was not available or there was an error"}
 
 
