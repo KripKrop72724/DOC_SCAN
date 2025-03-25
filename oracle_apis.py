@@ -176,8 +176,12 @@ def ipd_patient_details_dates_only(m):
     LEFT JOIN doctors d ON adm.fk_int_admitting_dr_id = d.doctor_id
     LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id
     WHERE adm.mr# = {}
-    ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
+    ORDER BY adm.fld_dat_adm_date DESC
     """.format(mr)
+
+    # Print the query for debugging
+    print("DEBUG: Executing query:")
+    print(query)
 
     # Execute the query and process each row
     for row in cursor.execute(query):
@@ -188,10 +192,10 @@ def ipd_patient_details_dates_only(m):
         admission_details.append(query_result)
 
     # Print debugging information
+    print("DEBUG: Admission details:")
     print(admission_details)
-    print(len(admission_details))
+    print("DEBUG: Number of rows fetched:", len(admission_details))
 
-    # Return the results if found; otherwise, return an error message
     if admission_details:
         return admission_details
     else:
