@@ -274,26 +274,35 @@ def opd_patient_details(m):
     cursor = dsn_tns.cursor()
     mr = m
     mr = "'" + mr + "'"
-    query = "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant from cashglobal_details_opd p, cashglobal_opd         o, specialities           sp, doctors                d where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id  and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' and o.mr# = " + mr + " and o.site_id = '1'"
+    query = (
+            "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant "
+            "from cashglobal_details_opd p, cashglobal_opd o, specialities sp, doctors d "
+            "where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id "
+            "and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' "
+            "and o.mr# = " + mr + " and o.site_id = '1' "
+                                  "ORDER BY o.tran_date DESC"
+    )
+    print("DEBUG: Executing query:")
+    print(query)
+
     for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'speciality', 'doctor_ID',
-                                      'doctor_name'], )
+        # Create a DataFrame for this row with labeled columns.
+        df = pd.DataFrame([row], columns=['visit_id', 'visit_date', 'speciality', 'doctor_ID', 'doctor_name'])
+        print("DEBUG: DataFrame row:")
         print(df)
-        # d = str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[1][0]), format="%m/%d/%y"))[:-9])[:-6]
         query_result = {
             'visit_id': df.iloc[0][0],
-            'visit_date': df.iloc[1][0],
-            'speciality': df.iloc[2][0],
-            'doctor_ID': df.iloc[3][0],
-            'doctor_name': df.iloc[4][0]
+            'visit_date': df.iloc[0][1],
+            'speciality': df.iloc[0][2],
+            'doctor_ID': df.iloc[0][3],
+            'doctor_name': df.iloc[0][4]
         }
         visit_details.append(query_result)
+    # Remove the initial template dictionary
     visit_details.pop(0)
+    print("DEBUG: Final visit_details:")
     print(visit_details)
-    print(len(visit_details))
+    print("DEBUG: Number of rows fetched:", len(visit_details))
     if len(visit_details) > 0:
         return visit_details
     else:
