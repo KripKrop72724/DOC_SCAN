@@ -78,40 +78,42 @@ def ipd_patient_details_with_date(date, m):
     import calendar
     import pandas as pd
 
-    # Reformat the date as in your original code.
-    # For example, if date = "23/04/2025", then:
-    #   date[0:3] is "23/", date[3:5] is "04", and date[-4:] is "2025"
+    # Reformat the date from "DD/MM/YYYY" to "DD-MON-YYYY"
+    # For example, if date = "08/07/2024", then:
+    #   date[0:3] is "08/", date[3:5] is "07" which is converted to "JUL"
+    #   and date[-4:] is "2024", resulting in "08/JUL/2024"
     month = int(date[3:5])
-    nu = calendar.month_name[month]
-    # Reassembled date: e.g., "23/April/2025"
-    date_formatted = str(date[0:3]) + str(nu) + "/" + str(date[-4:])
+    nu = calendar.month_abbr[month].upper()  # abbreviated month in upper case
+    date_formatted = str(date[0:3]) + nu + "/" + str(date[-4:])
     print("DEBUG: Reformatted date:", date_formatted)
 
-    # Build the SQL query using LEFT JOIN syntax.
-    # Note: We removed the condition "and cn.pc is not null" so that
-    # admissions without a note are still returned (with complain as NULL).
+    # Build the SQL query using a subquery with ROW_NUMBER() to select only the first complaint
     query = """
-    SELECT initcap(cn.pc) AS complain,
-           adm.pk_str_admission_id,
-           adm.fld_dat_adm_date,
-           sp.speciality_name,
-           d.doctor_id,
-           d.consultant
-    FROM ADMISSION.TBL_ADMISSION adm
-    LEFT JOIN emr.const_notes cn
-           ON adm.pk_str_admission_id = cn.id_
-    LEFT JOIN doctors d
-           ON adm.fk_int_admitting_dr_id = d.doctor_id
-    LEFT JOIN specialities sp
-           ON d.primary_speciality_id = sp.speciality_id
-    WHERE adm.mr# = '{m}'
-      AND trunc(adm.fld_dat_adm_date) = '{dte}'
-    GROUP BY initcap(cn.pc),
+    SELECT complain,
+           pk_str_admission_id,
+           fld_dat_adm_date,
+           speciality_name,
+           doctor_id,
+           consultant
+    FROM (
+      SELECT initcap(cn.pc) AS complain,
              adm.pk_str_admission_id,
              adm.fld_dat_adm_date,
              sp.speciality_name,
              d.doctor_id,
-             d.consultant
+             d.consultant,
+             ROW_NUMBER() OVER (PARTITION BY adm.pk_str_admission_id ORDER BY cn.pc) AS rn
+      FROM ADMISSION.TBL_ADMISSION adm
+      LEFT JOIN emr.const_notes cn
+             ON adm.pk_str_admission_id = cn.id_
+      LEFT JOIN doctors d
+             ON adm.fk_int_admitting_dr_id = d.doctor_id
+      LEFT JOIN specialities sp
+             ON d.primary_speciality_id = sp.speciality_id
+      WHERE adm.mr# = '{m}'
+        AND trunc(adm.fld_dat_adm_date) = TO_DATE('{dte}', 'DD-MON-YYYY')
+    )
+    WHERE rn = 1
     """.format(m=m, dte=date_formatted)
 
     print("DEBUG: Executing query:")
@@ -136,7 +138,7 @@ def ipd_patient_details_with_date(date, m):
     for row in cursor.execute(query):
         # Create a DataFrame for this row with labeled columns.
         df = pd.DataFrame([row], columns=['complain', 'admission_ID', 'admission_date',
-                                          'speciality', 'doctor_ID', 'doctor_name'])
+                                           'speciality', 'doctor_ID', 'doctor_name'])
         print("DEBUG: DataFrame row:")
         print(df)
         query_result = {
