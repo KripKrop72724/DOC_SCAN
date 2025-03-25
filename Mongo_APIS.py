@@ -686,6 +686,8 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
     """
     Retrieve images filtered by mrno, admission_id, visit_id_op, and class.
     If class_filter is 15, include documents with class "15" or class "0".
+    Additionally, when mr_no is provided, the query will only return documents
+    where is_bulk is True.
     Optimized with MongoDB indexing for faster query execution.
     """
     try:
@@ -701,6 +703,7 @@ def get_images_by_class_doc(mr_no=None, class_filter=None, admission_id=None, vi
         query_filter = {"is_del": False}
         if mr_no:
             query_filter["mrno"] = mr_no
+            query_filter["is_bulk"] = True  # Apply is_bulk filter when mr_no is provided
         if admission_id:
             query_filter["admission_id"] = admission_id
         if visit_id_op:
