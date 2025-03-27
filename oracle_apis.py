@@ -75,19 +75,12 @@ def check_mortality(mr):
 
 
 def ipd_patient_details_with_date(date, m):
-    import calendar
-    import pandas as pd
 
-    # Reformat the date from "DD/MM/YYYY" to "DD-MON-YYYY"
-    # For example, if date = "08/07/2024", then:
-    #   date[0:3] is "08/", date[3:5] is "07" which is converted to "JUL"
-    #   and date[-4:] is "2024", resulting in "08/JUL/2024"
     month = int(date[3:5])
     nu = calendar.month_abbr[month].upper()  # abbreviated month in upper case
     date_formatted = str(date[0:3]) + nu + "/" + str(date[-4:])
     print("DEBUG: Reformatted date:", date_formatted)
 
-    # Build the SQL query using a subquery with ROW_NUMBER() to select only the first complaint
     query = """
     SELECT complain,
            pk_str_admission_id,
@@ -119,7 +112,6 @@ def ipd_patient_details_with_date(date, m):
     print("DEBUG: Executing query:")
     print(query)
 
-    # Initialize the list with a template dictionary (will remove later)
     admission_details = [
         {
             'complain': u'',
@@ -131,14 +123,11 @@ def ipd_patient_details_with_date(date, m):
         }
     ]
 
-    # Create a database cursor from the existing connection (dsn_tns)
     cursor = dsn_tns.cursor()
 
-    # Execute the query and process each row returned by the cursor
     for row in cursor.execute(query):
-        # Create a DataFrame for this row with labeled columns.
         df = pd.DataFrame([row], columns=['complain', 'admission_ID', 'admission_date',
-                                           'speciality', 'doctor_ID', 'doctor_name'])
+                                          'speciality', 'doctor_ID', 'doctor_name'])
         print("DEBUG: DataFrame row:")
         print(df)
         query_result = {
@@ -151,7 +140,6 @@ def ipd_patient_details_with_date(date, m):
         }
         admission_details.append(query_result)
 
-    # Remove the initial template dictionary
     admission_details.pop(0)
 
     print("DEBUG: Final admission_details:")
@@ -159,7 +147,6 @@ def ipd_patient_details_with_date(date, m):
     print("DEBUG: Number of rows fetched:", len(admission_details))
 
     if len(admission_details) > 0:
-        # Sort the list by admission_ID (if desired)
         admission_details.sort(key=lambda x: x['admission_ID'])
         return admission_details
     else:
@@ -181,7 +168,6 @@ def ipd_patient_details_dates_only(m):
     ORDER BY TO_DATE(adm.fld_dat_adm_date, 'DD/MM/YYYY') DESC
     """.format(mr)
 
-    # Execute the query and process each row
     for row in cursor.execute(query):
         query_result = {
             'admission_ID': row[0],
@@ -189,11 +175,9 @@ def ipd_patient_details_dates_only(m):
         }
         admission_details.append(query_result)
 
-    # Print debugging information
     print(admission_details)
     print(len(admission_details))
 
-    # Return the results if found; otherwise, return an error message
     if admission_details:
         return admission_details
     else:
@@ -201,18 +185,13 @@ def ipd_patient_details_dates_only(m):
 
 
 def ipd_patient_details_without_complain(m):
-    # Initialize an empty list to hold the admission details
     admission_details = []
 
     try:
-        # Create a database cursor from the existing connection (dsn_tns)
         cursor = dsn_tns.cursor()
 
-        # Prepare the medical record number for the query (wrap in quotes)
         mr = "'" + m + "'"
 
-        # Updated SQL query that aggregates the supporting columns (using MAX)
-        # to ensure one row per admission (grouped by admission_ID and admission_date)
         query = """
         SELECT 
             MAX(initcap(cn.pc)) AS complain, 
@@ -236,7 +215,6 @@ def ipd_patient_details_without_complain(m):
         print("DEBUG: Executing query:")
         print(query)
 
-        # Execute the query and process each row returned by the cursor
         for row in cursor.execute(query):
             print("DEBUG: Retrieved row:", row)
             query_result = {
@@ -255,7 +233,6 @@ def ipd_patient_details_without_complain(m):
         print("ERROR: Exception occurred while executing query")
         print("ERROR:", e)
 
-    # Return the results if any are found; otherwise, log and return an error message
     if admission_details:
         return admission_details
     else:
@@ -264,6 +241,51 @@ def ipd_patient_details_without_complain(m):
 
 
 def opd_patient_details(m):
+    # visit_details = [
+    #     {
+    #         'visit_id': u'',
+    #         'visit_date': u'',
+    #         'speciality': u'',
+    #         'doctor_ID': u'',
+    #         'doctor_name': u''
+    #     }
+    # ]
+    # cursor = dsn_tns.cursor()
+    # mr = m
+    # mr = "'" + mr + "'"
+    # query = (
+    #         "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant "
+    #         "from cashglobal_details_opd p, cashglobal_opd o, specialities sp, doctors d "
+    #         "where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id "
+    #         "and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' "
+    #         "and o.mr# = " + mr + " and o.site_id = '1' "
+    #                               "ORDER BY o.tran_date DESC"
+    # )
+    # print("DEBUG: Executing query:")
+    # print(query)
+    #
+    # for row in cursor.execute(query):
+    #     # Create a DataFrame for this row with labeled columns.
+    #     df = pd.DataFrame([row], columns=['visit_id', 'visit_date', 'speciality', 'doctor_ID', 'doctor_name'])
+    #     print("DEBUG: DataFrame row:")
+    #     print(df)
+    #     query_result = {
+    #         'visit_id': df.iloc[0][0],
+    #         'visit_date': df.iloc[0][1],
+    #         'speciality': df.iloc[0][2],
+    #         'doctor_ID': df.iloc[0][3],
+    #         'doctor_name': df.iloc[0][4]
+    #     }
+    #     visit_details.append(query_result)
+    # # Remove the initial template dictionary
+    # visit_details.pop(0)
+    # print("DEBUG: Final visit_details:")
+    # print(visit_details)
+    # print("DEBUG: Number of rows fetched:", len(visit_details))
+    # if len(visit_details) > 0:
+    #     return visit_details
+    # else:
+    #     return {"Error": "Either the record was not available or there was an error"}
     visit_details = [
         {
             'visit_id': u'',
@@ -274,24 +296,27 @@ def opd_patient_details(m):
         }
     ]
     cursor = dsn_tns.cursor()
-    mr = m
-    mr = "'" + mr + "'"
+    mr = "'" + m + "'"
+
     query = (
-            "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant "
-            "from cashglobal_details_opd p, cashglobal_opd o, specialities sp, doctors d "
-            "where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id "
-            "and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' "
-            "and o.mr# = " + mr + " and o.site_id = '1' "
-                                  "ORDER BY o.tran_date DESC"
+            "SELECT t.visit_id, t.entry_date, sp.speciality_name, t.doctor_id, d.consultant "
+            "FROM registration.const_notes t "
+            "LEFT JOIN doctors d ON t.doctor_id = d.doctor_id "
+            "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
+            "WHERE t.isactive = 'Y' "
+            "AND t.mr# = " + mr + " "
+                                  "AND t.site_id = '1' "
+                                  "ORDER BY t.entry_date DESC"
     )
+
     print("DEBUG: Executing query:")
     print(query)
 
     for row in cursor.execute(query):
-        # Create a DataFrame for this row with labeled columns.
         df = pd.DataFrame([row], columns=['visit_id', 'visit_date', 'speciality', 'doctor_ID', 'doctor_name'])
         print("DEBUG: DataFrame row:")
         print(df)
+
         query_result = {
             'visit_id': df.iloc[0][0],
             'visit_date': df.iloc[0][1],
@@ -300,11 +325,13 @@ def opd_patient_details(m):
             'doctor_name': df.iloc[0][4]
         }
         visit_details.append(query_result)
-    # Remove the initial template dictionary
+
     visit_details.pop(0)
+
     print("DEBUG: Final visit_details:")
     print(visit_details)
     print("DEBUG: Number of rows fetched:", len(visit_details))
+
     if len(visit_details) > 0:
         return visit_details
     else:
@@ -312,48 +339,130 @@ def opd_patient_details(m):
 
 
 def opd_patient_details_dates_only(m):
-    visit_details = [
-        {
-            'visit_id': u'',
-            'visit_date': u'',
-        }
-    ]
+    # visit_details = [
+    #     {
+    #         'visit_id': u'',
+    #         'visit_date': u'',
+    #     }
+    # ]
+    # cursor = dsn_tns.cursor()
+    # mr = m
+    # mr = "'" + mr + "'"
+    # query = "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant from cashglobal_details_opd p, cashglobal_opd         o, specialities           sp, doctors                d where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id  and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' and o.mr# = " + mr + " and o.site_id = '1'"
+    # for row in cursor.execute(query):
+    #     df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'speciality', 'doctor_ID',
+    #                                   'doctor_name'], )
+    #     print(df)
+    #     # d = str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9]
+    #     # dd = d[5:7]
+    #     # d = (str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
+    #     #     (df.iloc[1][0]), format="%m/%d/%y"))[:-9])[:-6]
+    #     query_result = {
+    #         'visit_id': df.iloc[0][0],
+    #         'visit_date': df.iloc[1][0],
+    #     }
+    #     visit_details.append(query_result)
+    # visit_details.pop(0)
+    # print(visit_details)
+    # print(len(visit_details))
+    # if len(visit_details) > 0:
+    #     return visit_details
+    # else:
+    #     return {"Error": "Either the record was not available or there was an error"}
+    visit_details = []
     cursor = dsn_tns.cursor()
-    mr = m
-    mr = "'" + mr + "'"
-    query = "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant from cashglobal_details_opd p, cashglobal_opd         o, specialities           sp, doctors                d where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id  and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' and o.mr# = " + mr + " and o.site_id = '1'"
+    query = (
+            "SELECT t.visit_id, t.entry_date, sp.speciality_name, t.doctor_id, d.consultant "
+            "FROM registration.const_notes t "
+            "LEFT JOIN doctors d ON t.doctor_id = d.doctor_id "
+            "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
+            "WHERE t.isactive = 'Y' "
+            "AND t.mr# = '" + m + "' "
+                                  "AND t.site_id = '1' "
+                                  "ORDER BY t.entry_date DESC"
+    )
+
     for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'speciality', 'doctor_ID',
-                                      'doctor_name'], )
-        print(df)
-        # d = str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[1][0]), format="%m/%d/%y"))[:-9])[:-6]
+        print(row)
+        visit_id, entry_date, speciality, doctor_id, consultant = row
         query_result = {
-            'visit_id': df.iloc[0][0],
-            'visit_date': df.iloc[1][0],
+            'visit_id': visit_id,
+            'visit_date': entry_date
         }
         visit_details.append(query_result)
-    visit_details.pop(0)
+
     print(visit_details)
     print(len(visit_details))
-    if len(visit_details) > 0:
+
+    if visit_details:
         return visit_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
 
 
 def opd_patient_details_with_date(date, m):
-    mr = m
-    mr = "'" + mr + "'"
+    # mr = m
+    # mr = "'" + mr + "'"
+    # month = date[3:5]
+    # month = int(month)
+    # nu = calendar.month_name[month]
+    # date = str(date[0:3]) + str(nu) + "/" + str(date[-4:])
+    # print(date)
+    # print(month)
+    # query = "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant from cashglobal_details_opd p, cashglobal_opd         o, specialities           sp, doctors                d where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id  and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' and o.mr# =" + mr + "and o.site_id = '1' and trunc(o.tran_date) = '" + date + "'"
+    # print(query)
+    # visit_details = [
+    #     {
+    #         'visit_id': u'',
+    #         'visit_date': u'',
+    #         'speciality': u'',
+    #         'doctor_id': u'',
+    #         'doctor_name': u''
+    #     }
+    # ]
+    # cursor = dsn_tns.cursor()
+    # for row in cursor.execute(query):
+    #     df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'doctor_speciality',
+    #                                   'doctor_id', 'doctor_name'], )
+    #     print(df)
+    #     # d = str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9]
+    #     # dd = d[5:7]
+    #     # d = (str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
+    #     #     (df.iloc[1][0]), format="%m/%d/%y"))[:-9])[:-6]
+    #     #print(d)
+    #     query_result = {
+    #         'visit_id': df.iloc[0][0],
+    #         'visit_date': df.iloc[1][0],
+    #         'doctor_speciality': df.iloc[2][0],
+    #         'doctor_id': df.iloc[3][0],
+    #         'doctor_name': df.iloc[4][0]
+    #     }
+    #     visit_details.append(query_result)
+    # visit_details.pop(0)
+    # print(visit_details)
+    # print(len(visit_details))
+    # if len(visit_details) > 0:
+    #     return visit_details
+    # else:
+    #     return {"Error": "Either the record was not available or there was an error"}
+    mr = "'" + m + "'"
     month = date[3:5]
     month = int(month)
     nu = calendar.month_name[month]
     date = str(date[0:3]) + str(nu) + "/" + str(date[-4:])
     print(date)
     print(month)
-    query = "select o.tran_id, o.tran_date, sp.speciality_name, p.doctor_id, d.consultant from cashglobal_details_opd p, cashglobal_opd         o, specialities           sp, doctors                d where p.tran_id = o.tran_id and p.doctor_id = d.doctor_id  and d.primary_speciality_id = sp.speciality_id and p.major_id = '5555' and o.mr# =" + mr + "and o.site_id = '1' and trunc(o.tran_date) = '" + date + "'"
+    query = (
+            "SELECT t.visit_id, t.entry_date, sp.speciality_name, t.doctor_id, d.consultant "
+            "FROM registration.const_notes t "
+            "LEFT JOIN doctors d ON t.doctor_id = d.doctor_id "
+            "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
+            "WHERE t.isactive = 'Y' "
+            "AND t.mr# = " + mr + " "
+                                  "AND t.site_id = '1' "
+                                  "AND trunc(t.entry_date) = '" + date + "' "
+                                                                         "ORDER BY t.entry_date DESC"
+    )
     print(query)
     visit_details = [
         {
@@ -364,28 +473,25 @@ def opd_patient_details_with_date(date, m):
             'doctor_name': u''
         }
     ]
+
     cursor = dsn_tns.cursor()
     for row in cursor.execute(query):
-        df = pd.DataFrame(row, index=['visit_id', 'visit_date', 'doctor_speciality',
-                                      'doctor_id', 'doctor_name'], )
+        df = pd.DataFrame([row], columns=['visit_id', 'visit_date', 'speciality', 'doctor_id', 'doctor_name'])
         print(df)
-        # d = str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9]
-        # dd = d[5:7]
-        # d = (str(pd.to_datetime((df.iloc[1][0]), format="%D/%M/%Y"))[:-9])[-2:] + "/" + dd + "/" + (str(pd.to_datetime(
-        #     (df.iloc[1][0]), format="%m/%d/%y"))[:-9])[:-6]
-        #print(d)
         query_result = {
-            'visit_id': df.iloc[0][0],
-            'visit_date': df.iloc[1][0],
-            'doctor_speciality': df.iloc[2][0],
-            'doctor_id': df.iloc[3][0],
-            'doctor_name': df.iloc[4][0]
+            'visit_id': df.iloc[0]['visit_id'],
+            'visit_date': df.iloc[0]['visit_date'],
+            'speciality': df.iloc[0]['speciality'],
+            'doctor_id': df.iloc[0]['doctor_id'],
+            'doctor_name': df.iloc[0]['doctor_name']
         }
         visit_details.append(query_result)
+
     visit_details.pop(0)
     print(visit_details)
-    print(len(visit_details))
-    if len(visit_details) > 0:
+    print("Number of rows fetched:", len(visit_details))
+
+    if visit_details:
         return visit_details
     else:
         return {"Error": "Either the record was not available or there was an error"}
@@ -486,4 +592,7 @@ def mrd_emp_data():
 
 
 if __name__ == '__main__':
-    mrd_emp_data()
+    opd_patient_details_dates_only('228897')
+    print("===============================")
+    opd_patient_details("228897")
+    # opd_patient_details_with_date("")
