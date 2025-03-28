@@ -239,8 +239,7 @@ def route_function_upload():
         # print(i["baseX64"][1:])
         imgdata = base64.b64decode('/' + (i["base64"])[1:])
         print("line 5")
-        filename = str(
-            doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
+        filename = str(doc_id_from_mongo.doc_id_dispatcher()) + '.jpg'
         with open(filename, 'wb') as f:
             f.write(imgdata)
         im = Image.open(filename)
@@ -264,7 +263,7 @@ def route_function_upload():
             'type': loaded["type"],
             'visit_id_op': loaded["visit_id_op"],
             'doctor_id_op': loaded["doctor_id_op"],
-            'doctor_speciality_op': loaded["doctor_speciality_op"],
+            'doctor_speciality_op': loaded.get("doctor_speciality_op"),
             'visit_date_op': loaded["visit_date_op"],
             'admission_id': loaded["admission_id"],
             'admission_date_ip': loaded["admission_date_ip"],
