@@ -305,7 +305,6 @@ def opd_patient_details(m):
             "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
             "WHERE t.isactive = 'Y' "
             "AND t.mr# = " + mr + " "
-                                  "AND t.site_id = '1' "
                                   "ORDER BY t.entry_date DESC"
     )
 
@@ -378,7 +377,6 @@ def opd_patient_details_dates_only(m):
             "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
             "WHERE t.isactive = 'Y' "
             "AND t.mr# = '" + m + "' "
-                                  "AND t.site_id = '1' "
                                   "ORDER BY t.entry_date DESC"
     )
 
@@ -459,7 +457,6 @@ def opd_patient_details_with_date(date, m):
             "LEFT JOIN specialities sp ON d.primary_speciality_id = sp.speciality_id "
             "WHERE t.isactive = 'Y' "
             "AND t.mr# = " + mr + " "
-                                  "AND t.site_id = '1' "
                                   "AND trunc(t.entry_date) = '" + date + "' "
                                                                          "ORDER BY t.entry_date DESC"
     )
