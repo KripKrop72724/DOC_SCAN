@@ -523,69 +523,85 @@ def demo(m):
 
 
 def mrd_emp_data():
+    """
+    Fetch employee details (ID, name, email, department) and their photos from Oracle DB,
+    encode photos to base64, and return a structured response.
+    Departments filtered: 19 (MEDICAL RECORDS), 45 (OPERATING ROOM).
+    """
     emp_details = []
     temp_folder = "temp"
 
-    # Create the temporary folder if it doesn't exist
-    if not os.path.exists(temp_folder):
-        os.makedirs(temp_folder)
+    try:
+        # Create the temporary folder if it doesn't exist
+        os.makedirs(temp_folder, exist_ok=True)
 
-    # Updated query to select dept_id and filter rows for dept_id 19 and 45
-    query = """
-        SELECT t.emp_id || '.jpg' AS filename,
-               t.name,
-               p.photo,
-               t.email,
-               t.dept_id
-          FROM employee_list_working t
-          JOIN employee_profile p ON t.emp_id = p.emp_id
-         WHERE t.dept_id IN (19, 45)
-    """
+        # Query to select required fields and filter by departments
+        query = """
+            SELECT t.emp_id || '.jpg' AS filename,
+                   t.name,
+                   p.photo,
+                   t.email,
+                   t.dept_id
+              FROM employee_list_working t
+              JOIN employee_profile p ON t.emp_id = p.emp_id
+             WHERE t.dept_id IN (19, 45)
+        """
 
-    cursor = dsn_tns.cursor()
-    for row in cursor.execute(query):
-        # Unpack row columns
-        filename, name, photo, email, dept_id = row
+        cursor = dsn_tns.cursor()
+        cursor.execute(query)
 
-        # Write the photo to a file in the temporary folder
-        file_path = os.path.join(temp_folder, filename)
-        with open(file_path, 'wb') as f:
-            f.write(photo)
+        for row in cursor:
+            filename, name, photo, email, dept_id = row
 
-        # Get the base64 encoded string of the image
-        with open(file_path, "rb") as image_file:
-            encoded_bytes = base64.b64encode(image_file.read())
-            encoded_string = encoded_bytes.decode("utf-8")
+            # Determine department name
+            if dept_id == 19:
+                department = "MEDICAL RECORDS"
+            elif dept_id == 45:
+                department = "OPERATING ROOM"
+            else:
+                department = "UNKNOWN"
 
-        # Determine department based on dept_id
-        if dept_id == 19:
-            department = "MEDICAL RECORDS"
-        elif dept_id == 45:
-            department = "OPERATING ROOM"
-        else:
-            department = "UNKNOWN"
+            encoded_string = ""
+            if photo:
+                try:
+                    # Write the photo to a file (for legacy compatibility)
+                    file_path = os.path.join(temp_folder, filename)
+                    with open(file_path, 'wb') as f:
+                        f.write(photo)
 
-        emp_details.append({
-            'emp_id': filename.replace(".jpg", ''),
-            'name': name,
-            'base64': encoded_string,
-            'department': department,
-            'email': email
-        })
+                    # Encode directly from bytes to avoid extra I/O read
+                    encoded_string = base64.b64encode(photo).decode('utf-8')
+                except Exception as e:
+                    logger.error("Failed processing photo for %s: %s", filename, e)
+            else:
+                logger.warning("No photo data for %s. Skipping encoding.", filename)
 
-    # Clean up the temporary folder after processing
-    cc(temp_folder)
+            emp_details.append({
+                'emp_id': filename.rsplit('.', 1)[0],
+                'name': name,
+                'base64': encoded_string,
+                'department': department,
+                'email': email
+            })
 
-    print(emp_details)
+    except Exception as e:
+        logger.exception("Error in mrd_emp_data: %s", e)
+    finally:
+        # Clean up the temporary folder
+        try:
+            if os.path.isdir(temp_folder):
+                shutil.rmtree(temp_folder)
+        except Exception as e:
+            logger.error("Failed to remove temp folder '%s': %s", temp_folder, e)
 
-    res = {
+    # Build the final response
+    return {
         "data": emp_details,
         "status": True,
         "statusCode": 200,
         "message": "Success",
         "error": ""
     }
-    return res
 
 
 if __name__ == '__main__':
