@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import cx_Oracle
 import pandas as pd
@@ -572,9 +573,9 @@ def mrd_emp_data():
                     # Encode directly from bytes to avoid extra I/O read
                     encoded_string = base64.b64encode(photo).decode('utf-8')
                 except Exception as e:
-                    logger.error("Failed processing photo for %s: %s", filename, e)
+                    print("Failed processing photo for %s: %s", filename, e)
             else:
-                logger.warning("No photo data for %s. Skipping encoding.", filename)
+                print("No photo data for %s. Skipping encoding.", filename)
 
             emp_details.append({
                 'emp_id': filename.rsplit('.', 1)[0],
@@ -585,14 +586,14 @@ def mrd_emp_data():
             })
 
     except Exception as e:
-        logger.exception("Error in mrd_emp_data: %s", e)
+        print("Error in mrd_emp_data: %s", e)
     finally:
         # Clean up the temporary folder
         try:
             if os.path.isdir(temp_folder):
                 shutil.rmtree(temp_folder)
         except Exception as e:
-            logger.error("Failed to remove temp folder '%s': %s", temp_folder, e)
+            print("Failed to remove temp folder '%s': %s", temp_folder, e)
 
     # Build the final response
     return {
