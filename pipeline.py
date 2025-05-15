@@ -790,11 +790,13 @@ def deactivate():
         return jsonify({"message": "Missing emp_id"}), 400
 
     client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
-    coll = client["DOC_SCAN"]["VIEWER_AUTH"]
+    coll   = client["DOC_SCAN"]["VIEWER_AUTH"]
 
     updated = coll.find_one_and_update(
         {"emp_id": str(emp)},
-        {"$bit": {"is_active": {"xor": 1}}},
+        [
+            {"$set": {"is_active": {"$not": ["$is_active"]}}}
+        ],
         return_document=ReturnDocument.AFTER
     )
 
@@ -805,6 +807,7 @@ def deactivate():
         "message": f"Successfully changed is_active → {updated['is_active']}",
         "status": 200
     }), 200
+
 
 
 @app.route("/docscan/stats", methods=["GET"])
