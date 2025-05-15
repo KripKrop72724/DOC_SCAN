@@ -14,7 +14,7 @@ from flask_restful import Api, Resource
 import datetime
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument
 import bcrypt as bc
 import clone_server
 import doc_id_from_mongo
@@ -782,27 +782,29 @@ def logout_time_stamp():
 @app.route("/docscan/scanner/deactivate", methods=["POST"])
 @jwt_required()
 def deactivate():
-    emp = str(request.args.get('emp_id'))
-    print(emp)
-    print("Connecting to db")
-    my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
-    print("connection successful")
-    collection = my_client["DOC_SCAN"]
-    doc = collection['VIEWER_AUTH']
-    print(doc.find_one({'emp_id': emp}))
-    d = doc.find_one({'emp_id': emp})
-    msg = not (d["is_active"])
-    doc.update_one({'emp_id': emp}, {'$set': {"is_active": not (d["is_active"])}})
-    if doc.update_one({'emp_id': emp}, {'$set': {"is_active": not (d["is_active"])}}):
-        return {
-            "message": "Successfully Changed to " + str(msg),
-            "status": 200
-        }
-    else:
-        return {
-            "message": "Unable to change status",
-            "status": 304
-        }
+    emp = request.args.get("emp_id")
+    if not emp:
+        data = request.get_json(silent=True) or {}
+        emp = data.get("emp_id")
+    if not emp:
+        return jsonify({"message": "Missing emp_id"}), 400
+
+    client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+    coll = client["DOC_SCAN"]["VIEWER_AUTH"]
+
+    updated = coll.find_one_and_update(
+        {"emp_id": str(emp)},
+        {"$bit": {"is_active": {"xor": 1}}},
+        return_document=ReturnDocument.AFTER
+    )
+
+    if not updated:
+        return jsonify({"message": "Employee not found"}), 404
+
+    return jsonify({
+        "message": f"Successfully changed is_active → {updated['is_active']}",
+        "status": 200
+    }), 200
 
 
 @app.route("/docscan/stats", methods=["GET"])
