@@ -779,7 +779,7 @@ def logout_time_stamp():
     }
 
 
-@app.route("/docscan/scanner/deactivate", methods=["POST"])
+@app.route("/docscan/scanner/deactivate", methods=["POST", "GET"])
 @jwt_required()
 def deactivate():
     emp = request.args.get("emp_id")
