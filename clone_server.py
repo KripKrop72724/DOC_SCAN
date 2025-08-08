@@ -92,4 +92,4 @@ def initiate_mongo_devil():
     cm.start()
 
 if __name__ == '__main__':
-    initiate_mongo_devil()
+    clone_mongo()
