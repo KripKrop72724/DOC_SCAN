@@ -41,6 +41,15 @@ def _log_cycle_stats(
     logger.info(border)
 
 
+def _log_credentials_table(records: list) -> None:
+    """Log a table of all usernames and passwords cloned."""
+    if not records:
+        logger.info("No credentials were cloned.")
+        return
+    df = pd.DataFrame(records, columns=["USERNAME", "PASSWORD"])
+    logger.info("\n" + df.to_string(index=False))
+
+
 def clone_mongo():
     cycle = 0
     while True:
@@ -87,9 +96,57 @@ def clone_mongo():
         logger.info(colored("Cycle complete", "cyan"))
 
 
+def clone_mongo_once():
+    """Clone credentials from Oracle to MongoDB a single time."""
+    cycle_start = time.time()
+    _log_cycle_header(1)
+    time.sleep(3)
+
+    logger.info(colored("Connecting to MongoDB and preparing collection", "yellow"))
+    prep_start = time.time()
+    my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+    collection = my_client["DOC_SCAN"]
+    doc_id = collection['AUTH']
+    doc_id.drop()
+    prep_duration = time.time() - prep_start
+    logger.info(colored(f"Collection ready in {prep_duration:.2f}s", "green"))
+
+    time.sleep(1.5)
+    cursor = dsn_tns.cursor()
+
+    query = "select username , password  from cdr.api_users"
+
+    logger.info(colored("Fetching records from Oracle", "yellow"))
+    fetch_start = time.time()
+    row_count = 0
+    records = []
+    for row in cursor.execute(query):
+        df = pd.DataFrame(row, index=["USERNAME", "PASSWORD"])
+        result = {
+            "USERNAME": df.iloc[0][0],
+            "PASSWORD": df.iloc[1][0]
+        }
+        doc_id.insert_one(result)
+        records.append(result)
+        row_count += 1
+    fetch_duration = time.time() - fetch_start
+    logger.info(
+        colored(
+            f"Fetched and inserted {row_count} records in {fetch_duration:.2f}s",
+            "green",
+        )
+    )
+
+    _log_credentials_table(records)
+
+    duration = time.time() - cycle_start
+    _log_cycle_stats(prep_duration, row_count, fetch_duration, duration)
+    logger.info(colored("Clone complete", "cyan"))
+
+
 def initiate_mongo_devil():
     cm = multiprocessing.Process(target=clone_mongo, daemon=True)
     cm.start()
 
 if __name__ == '__main__':
-    clone_mongo()
+    clone_mongo_once()
