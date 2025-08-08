@@ -1,4 +1,5 @@
 import cx_Oracle
+import logging
 import multiprocessing
 import time
 
@@ -9,15 +10,19 @@ from termcolor import colored
 from MONGO_CRED import DB_URL, DB_PASSWORD, DB_USERNAME, dsn_tns
 
 
-def _print_cycle_header(cycle: int) -> None:
-    """Print a highlighted header for each clone cycle."""
-    print(colored(f"\n=== Clone Cycle {cycle} ===", "cyan", attrs=["bold"]))
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def _print_cycle_stats(
+def _log_cycle_header(cycle: int) -> None:
+    """Log a highlighted header for each clone cycle."""
+    logger.info(colored(f"\n=== Clone Cycle {cycle} ===", "cyan", attrs=["bold"]))
+
+
+def _log_cycle_stats(
     prep_duration: float, row_count: int, fetch_duration: float, cycle_duration: float
 ) -> None:
-    """Print a table summarizing stats for the completed cycle."""
+    """Log a table summarizing stats for the completed cycle."""
     stats = [
         ("Collection prep (s)", f"{prep_duration:.2f}"),
         ("Rows inserted", str(row_count)),
@@ -28,12 +33,12 @@ def _print_cycle_stats(
     name_width = max(len(name) for name, _ in stats)
     value_width = max(len(value) for _, value in stats)
     border = "+" + "-" * (name_width + 2) + "+" + "-" * (value_width + 2) + "+"
-    print(border)
-    print(f"| {'Metric'.ljust(name_width)} | {'Value'.ljust(value_width)} |")
-    print(border)
+    logger.info(border)
+    logger.info(f"| {'Metric'.ljust(name_width)} | {'Value'.ljust(value_width)} |")
+    logger.info(border)
     for name, value in stats:
-        print(f"| {name.ljust(name_width)} | {value.rjust(value_width)} |")
-    print(border)
+        logger.info(f"| {name.ljust(name_width)} | {value.rjust(value_width)} |")
+    logger.info(border)
 
 
 def clone_mongo():
@@ -41,24 +46,24 @@ def clone_mongo():
     while True:
         cycle += 1
         cycle_start = time.time()
-        _print_cycle_header(cycle)
+        _log_cycle_header(cycle)
         time.sleep(3)
 
-        print(colored("Connecting to MongoDB and preparing collection", "yellow"))
+        logger.info(colored("Connecting to MongoDB and preparing collection", "yellow"))
         prep_start = time.time()
         my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
         collection = my_client["DOC_SCAN"]
         doc_id = collection['AUTH']
         doc_id.drop()
         prep_duration = time.time() - prep_start
-        print(colored(f"Collection ready in {prep_duration:.2f}s", "green"))
+        logger.info(colored(f"Collection ready in {prep_duration:.2f}s", "green"))
 
         time.sleep(1.5)
         cursor = dsn_tns.cursor()
 
         query = "select cdr.api_users.username , cdr.api_users.password  from cdr.api_users"
 
-        print(colored("Fetching records from Oracle", "yellow"))
+        logger.info(colored("Fetching records from Oracle", "yellow"))
         fetch_start = time.time()
         row_count = 0
         for row in cursor.execute(query):
@@ -70,7 +75,7 @@ def clone_mongo():
             doc_id.insert_one(result)
             row_count += 1
         fetch_duration = time.time() - fetch_start
-        print(
+        logger.info(
             colored(
                 f"Fetched and inserted {row_count} records in {fetch_duration:.2f}s",
                 "green",
@@ -78,8 +83,8 @@ def clone_mongo():
         )
 
         duration = time.time() - cycle_start
-        _print_cycle_stats(prep_duration, row_count, fetch_duration, duration)
-        print(colored("Cycle complete", "cyan"))
+        _log_cycle_stats(prep_duration, row_count, fetch_duration, duration)
+        logger.info(colored("Cycle complete", "cyan"))
 
 
 def initiate_mongo_devil():
