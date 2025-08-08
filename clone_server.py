@@ -90,3 +90,6 @@ def clone_mongo():
 def initiate_mongo_devil():
     cm = multiprocessing.Process(target=clone_mongo, daemon=True)
     cm.start()
+
+if __name__ == '__main__':
+    initiate_mongo_devil()
