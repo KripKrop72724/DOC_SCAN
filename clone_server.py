@@ -61,7 +61,7 @@ def clone_mongo():
         time.sleep(1.5)
         cursor = dsn_tns.cursor()
 
-        query = "username , password  from cdr.api_users"
+        query = "select username , password  from cdr.api_users"
 
         logger.info(colored("Fetching records from Oracle", "yellow"))
         fetch_start = time.time()
