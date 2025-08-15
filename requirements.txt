@@ -57,7 +57,6 @@ tensorflow-io-gcs-filesystem
 termcolor
 typing_extensions
 urllib3
-uWSGI
 Werkzeug
 wrapt
 zipp
