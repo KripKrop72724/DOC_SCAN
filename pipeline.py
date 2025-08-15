@@ -10,7 +10,7 @@ from flask_cors import CORS, cross_origin
 import time
 import jpg_compress_mechanisms
 import oracle_apis
-from flask_restful import Api, Resource
+from flask_restx import Api, Resource
 import datetime
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -33,13 +33,26 @@ app = Flask(__name__)
 cors = CORS(app)
 compress.init_app(app)
 
-api = Api(app)
+api = Api(
+    app,
+    version='1.0',
+    title='DOC_SCAN API',
+    description='Interactive documentation for DOC_SCAN service',
+    doc='/docs'
+)
+
+# Namespaces for grouping endpoints
+docscan_ns = api.namespace('docscan', path='/docscan', description='DocScan operations')
+ipd_ns = api.namespace('ipd', path='/ipd', description='In-patient operations')
+opd_ns = api.namespace('opd', path='/opd', description='Out-patient operations')
+bulk_ns = api.namespace('bulk', path='/bulk', description='Bulk upload operations')
+mortality_ns = api.namespace('mortality', path='/mortality', description='Mortality bulk operations')
+mrd_ns = api.namespace('mrd', path='/mrd', description='MRD operations')
 jwt = JWTManager(app)
 app.config['JWT_SECRET_KEY'] = 'zb$@ic^Jg#aywFO1u9%shY7E66Z1cZnO&EK@9e$nwqTrLF#ph1'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
 
 
-@app.route("/docscan/login", methods=["POST"])
 def login():
     login_details = request.get_json()
     print(login_details)
@@ -64,7 +77,6 @@ def login():
                     }), 401
 
 
-@app.route("/docscan/scanner/login", methods=["POST"])
 def login_rolebase():
     login_details = request.get_json()
     print(login_details)
@@ -136,7 +148,6 @@ def after_request(response):
     return response
 
 
-@app.route("/scan_zip_file")
 def route_function_zip():
     os.system("CmdTwain -q C:\\DocScan\\Doc_Scan_Test_Document.jpg")
     time.sleep(0.5)
@@ -154,18 +165,15 @@ def route_function_zip():
     return send_file("scan_result.zip", as_attachment=True, download_name="scan_result.zip")
 
 
-@app.route("/scan_base64")
 def route_function_base():
     route_object = main_scanner_driver()
     return route_object
 
 
-@app.route("/home")
 def welcs():
     return "<h1>WELCOME API'S ARE NOW RUNNING :)<h1>"
 
 
-@app.route("/ipd/all_details")
 @jwt_required()
 def Route_Function_Ipd():
     mr = str(request.args.get('mr'))
@@ -173,7 +181,6 @@ def Route_Function_Ipd():
     return route_object
 
 
-@app.route("/ipd/with_date")
 @jwt_required()
 def Route_Function_Ipd_with_date():
     mr = str(request.args.get('mr'))
@@ -182,7 +189,6 @@ def Route_Function_Ipd_with_date():
     return route_object
 
 
-@app.route("/ipd/all_dates")
 @jwt_required()
 def Route_Function_Ipd_all_dates():
     mr = request.args.get('mr')
@@ -190,7 +196,6 @@ def Route_Function_Ipd_all_dates():
     return route_object
 
 
-@app.route("/opd/all_details")
 @jwt_required()
 def Route_Function_Opd():
     mr = request.args.get('mr')
@@ -198,7 +203,6 @@ def Route_Function_Opd():
     return route_object
 
 
-@app.route("/opd/all_dates")
 @jwt_required()
 def Route_Function_Opd_all_dates():
     mr = request.args.get('mr')
@@ -206,7 +210,6 @@ def Route_Function_Opd_all_dates():
     return route_object
 
 
-@app.route("/opd/with_date")
 @jwt_required()
 def Route_Function_Opd_with_date():
     mr = str(request.args.get('mr'))
@@ -215,7 +218,6 @@ def Route_Function_Opd_with_date():
     return route_object
 
 
-@app.route("/docscan/patient_demographics")
 @jwt_required()
 def Route_Function_Patient_Demographics():
     mr = str(request.args.get('mrno'))
@@ -223,7 +225,6 @@ def Route_Function_Patient_Demographics():
     return route_object
 
 
-@app.route("/docscan/upload", methods=["POST"])
 @jwt_required()
 def route_function_upload():
     print("line 1")
@@ -360,7 +361,6 @@ def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d, mrt):
         os.remove(img)
 
 
-@app.route("/docscan/upload/bulk", methods=["POST"])
 @jwt_required()
 def route_function_upload_bulk():
     data_to_be_saved = request.get_json()
@@ -370,7 +370,6 @@ def route_function_upload_bulk():
     return "saved"
 
 
-@app.route("/docscan/mortality/upload/bulk", methods=["POST"])
 @jwt_required()
 def route_function_mrt_upload_bulk():
     data_to_be_saved = request.get_json()
@@ -380,7 +379,6 @@ def route_function_mrt_upload_bulk():
     return "saved"
 
 
-@app.route("/save", methods=["POST"])
 @jwt_required()
 def route_function_save():
     # Get JSON data directly from the request
@@ -464,7 +462,6 @@ def doc_id_dispatcher():
     return ret
 
 
-@app.route("/bulk/save", methods=["POST"])
 def route_function_bulk_save():
     data_to_be_saved = request.get_json()
     loaded = json.loads(json.dumps(data_to_be_saved))
@@ -520,7 +517,6 @@ def route_function_bulk_save():
     return jsonify({"status": "saved"}), 200
 
 
-@app.route("/mortality/bulk/save", methods=["POST"])
 def route_function_bulk_save_for_mortality():
     data_to_be_saved = request.get_json()
     loaded = json.loads(json.dumps(data_to_be_saved))
@@ -583,14 +579,12 @@ if __name__ == "_main_":
     app.run(debug=True)
 
 
-@app.route("/bulk/view", methods=["GET"])
 @jwt_required()
 def route_function_bulk_view():
     mr = request.args.get("mrno")
     return Mongo_APIS.bulk_viewer(mr)
 
 
-@app.route("/bulk/view/class", methods=["GET"])
 @jwt_required()
 def route_function_bulk_view_class_doc():
     mr_no = request.args.get("mrno")
@@ -601,7 +595,6 @@ def route_function_bulk_view_class_doc():
     return Mongo_APIS.get_images_by_class_doc(mr_no, class_filter, admission_id, visit_id_op)
 
 
-@app.route("/bulk/view/class/count_based", methods=["GET"])
 @jwt_required()
 def route_function_bulk_view_class_count_based():
     mr = request.args.get("mrno")
@@ -617,29 +610,25 @@ def route_function_bulk_view_class_count_based():
     # Pass filter_criteria to the function
     return Mongo_APIS.image_count_with_class_names(filter_criteria)
 
-# @app.route("/bulk/view/class/compressed", methods=["GET"])
-# @jwt_required()
+# # @jwt_required()
 # def route_function_bulk_view_class_thumb():
 #     mr = request.args.get("mrno")
 #     class_filter = request.args.get("class")
 #     return Mongo_APIS.get_images_by_class_thumb(mr, class_filter)
 
 
-@app.route("/employee_data", methods=["GET"])
 @jwt_required()
 def get_emp_data():
     route_object = oracle_apis.mrd_emp_data()
     return route_object
 
 
-@app.route("/get_classes", methods=["GET"])
 @jwt_required()
 def get_classes():
     route_object = gd()
     return route_object
 
 
-@app.route("/get_class_images", methods=["GET"])
 @jwt_required()
 def get_images():
     mrno = str(request.args.get('mr'))
@@ -648,21 +637,18 @@ def get_images():
     return route_obj
 
 
-@app.route("/mrd/get_emp_details", methods=["GET"])
 @jwt_required()
 def get_mrd_employees():
     route_obj = oracle_apis.mrd_emp_data()
     return route_obj
 
 
-@app.route("/mrd/get_all_users", methods=["GET"])
 @jwt_required()
 def bring_all_users():
     route_obj = Mongo_APIS.bring_users_data()
     return route_obj
 
 
-@app.route("/mrd/create_scanner_user", methods=["POST"])
 @jwt_required()
 def create_scanners():
     # Get the JSON payload
@@ -726,7 +712,6 @@ def create_scanners():
         return {'msg': "User updated successfully", 'status': 200}
 
 
-@app.route("/mrd/reset_pass", methods=["POST"])
 @jwt_required()
 def reset_pass():
     obj = request.get_json()
@@ -762,7 +747,6 @@ def reset_pass():
                 }
 
 
-@app.route("/docscan/scanner/logout", methods=["POST"])
 def logout_time_stamp():
     emp = str(request.args.get('emp_id'))
     print(emp)
@@ -779,7 +763,6 @@ def logout_time_stamp():
     }
 
 
-@app.route("/docscan/scanner/deactivate", methods=["POST", "GET"])
 @jwt_required()
 def deactivate():
     emp = request.args.get("emp_id")
@@ -810,13 +793,11 @@ def deactivate():
 
 
 
-@app.route("/docscan/stats", methods=["GET"])
 @jwt_required()
 def stats():
     return stats_calculator()
 
 
-@app.route("/docscan/delete", methods=["POST"])
 @jwt_required()
 def dell():
     r = request.get_json()
@@ -828,7 +809,6 @@ def dell():
     return {'msg': "Success", 'status': 200}
 
 
-@app.route("/docscan/undo_delete", methods=["POST"])
 @jwt_required()
 def undo_dell():
     r = request.get_json()
@@ -839,14 +819,12 @@ def undo_dell():
     return {'msg': "Success", 'status': 200}
 
 
-@app.route("/docscan/check_existence", methods=["GET"])
 @jwt_required()
 def check_existence():
     r = request.args.get('mrno')
     return {'msg': Mongo_APIS.mrn_checker(r), 'status': 200}
 
 
-@app.route("/docscan/dumb_classifier", methods=["POST"])
 @jwt_required()
 def dumb_classifier():
     r = request.get_json()
@@ -857,7 +835,6 @@ def dumb_classifier():
     return {'msg': True, 'status': 200}
 
 
-@app.route("/docscan/verify_pass", methods=["POST"])
 def verify_pass():
     login_details = request.get_json()
     print(login_details)
@@ -878,7 +855,6 @@ def verify_pass():
             return {'msg': False, 'status': 200}
 
 
-@app.route("/docscan/get_all_unclassified", methods=["GET"])
 @jwt_required()
 def unclassified_getter():
     ret = {
@@ -889,7 +865,6 @@ def unclassified_getter():
     return ret
 
 
-@app.route("/docscan/get_all_recycled", methods=["GET"])
 @jwt_required()
 def recycled_getter():
     show = int(request.args.get("documents_per_page"))
@@ -902,7 +877,6 @@ def recycled_getter():
     return ret
 
 
-@app.route("/docscan/bulk_dumb_classify", methods=["POST"])
 @jwt_required()
 def bulk_dumb_classify():
     r = request.get_json()
@@ -913,7 +887,6 @@ def bulk_dumb_classify():
     return {"status": 200}
 
 
-@app.route("/docscan/images/<visit_id_op>", methods=["GET"])
 @jwt_required()
 def get_images_by_visit_id_op(visit_id_op):
     try:
@@ -954,7 +927,6 @@ def get_images_by_visit_id_op(visit_id_op):
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
 
 
-@app.route("/docscan/images/admission/<admission_id>", methods=["GET"])
 @jwt_required()
 def get_images_by_admission_id(admission_id):
     try:
@@ -993,6 +965,66 @@ def get_images_by_admission_id(admission_id):
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
+
+
+# Register routes with Flask-RESTX
+def _register_restx_routes():
+    def make_resource(func, methods):
+        def wrapper(self, **kwargs):
+            return func(**kwargs)
+        attrs = {'__doc__': func.__doc__}
+        for m in methods:
+            attrs[m.lower()] = wrapper
+        return type(f"{func.__name__.title()}Resource", (Resource,), attrs)
+
+    routes = [
+        (docscan_ns, '/login', ['POST'], login),
+        (docscan_ns, '/scanner/login', ['POST'], login_rolebase),
+        (api, '/scan_zip_file', ['GET'], route_function_zip),
+        (api, '/scan_base64', ['GET'], route_function_base),
+        (api, '/home', ['GET'], welcs),
+        (ipd_ns, '/all_details', ['GET'], Route_Function_Ipd),
+        (ipd_ns, '/with_date', ['GET'], Route_Function_Ipd_with_date),
+        (ipd_ns, '/all_dates', ['GET'], Route_Function_Ipd_all_dates),
+        (opd_ns, '/all_details', ['GET'], Route_Function_Opd),
+        (opd_ns, '/all_dates', ['GET'], Route_Function_Opd_all_dates),
+        (opd_ns, '/with_date', ['GET'], Route_Function_Opd_with_date),
+        (docscan_ns, '/patient_demographics', ['GET'], Route_Function_Patient_Demographics),
+        (docscan_ns, '/upload', ['POST'], route_function_upload),
+        (docscan_ns, '/upload/bulk', ['POST'], route_function_upload_bulk),
+        (docscan_ns, '/mortality/upload/bulk', ['POST'], route_function_mrt_upload_bulk),
+        (api, '/save', ['POST'], route_function_save),
+        (bulk_ns, '/save', ['POST'], route_function_bulk_save),
+        (mortality_ns, '/bulk/save', ['POST'], route_function_bulk_save_for_mortality),
+        (bulk_ns, '/view', ['GET'], route_function_bulk_view),
+        (bulk_ns, '/view/class', ['GET'], route_function_bulk_view_class_doc),
+        (bulk_ns, '/view/class/count_based', ['GET'], route_function_bulk_view_class_count_based),
+        (api, '/employee_data', ['GET'], get_emp_data),
+        (api, '/get_classes', ['GET'], get_classes),
+        (api, '/get_class_images', ['GET'], get_images),
+        (mrd_ns, '/get_emp_details', ['GET'], get_mrd_employees),
+        (mrd_ns, '/get_all_users', ['GET'], bring_all_users),
+        (mrd_ns, '/create_scanner_user', ['POST'], create_scanners),
+        (mrd_ns, '/reset_pass', ['POST'], reset_pass),
+        (docscan_ns, '/scanner/logout', ['POST'], logout_time_stamp),
+        (docscan_ns, '/scanner/deactivate', ['POST', 'GET'], deactivate),
+        (docscan_ns, '/stats', ['GET'], stats),
+        (docscan_ns, '/delete', ['POST'], dell),
+        (docscan_ns, '/undo_delete', ['POST'], undo_dell),
+        (docscan_ns, '/check_existence', ['GET'], check_existence),
+        (docscan_ns, '/dumb_classifier', ['POST'], dumb_classifier),
+        (docscan_ns, '/verify_pass', ['POST'], verify_pass),
+        (docscan_ns, '/get_all_unclassified', ['GET'], unclassified_getter),
+        (docscan_ns, '/get_all_recycled', ['GET'], recycled_getter),
+        (docscan_ns, '/bulk_dumb_classify', ['POST'], bulk_dumb_classify),
+        (docscan_ns, '/images/<visit_id_op>', ['GET'], get_images_by_visit_id_op),
+        (docscan_ns, '/images/admission/<admission_id>', ['GET'], get_images_by_admission_id),
+    ]
+    for ns, route, methods, func in routes:
+        ns.add_resource(make_resource(func, methods), route)
+
+
+_register_restx_routes()
 
 
 @app.errorhandler(404)
