@@ -12,7 +12,7 @@ Flask
 Flask-Compress
 Flask-Cors
 Flask-JWT-Extended
-Flask-RESTful
+Flask-RESTX
 flatbuffers
 gunicorn
 gast
