@@ -666,6 +666,9 @@ def create_scanners():
     is_viewer = bool(loaded['is_viewer'])
     is_ot_scanner = bool(loaded['is_ot_scanner'])
     is_ot_viewer = bool(loaded['is_ot_viewer'])
+    # Optional anesthesia roles
+    is_anesthesia_scanner = bool(loaded.get('is_anesthesia_scanner', False))
+    is_anesthesia_viewer = bool(loaded.get('is_anesthesia_viewer', False))
     is_admin = False
     email = str(loaded['email'])
     is_active = True
@@ -686,6 +689,8 @@ def create_scanners():
         "is_viewer": is_viewer,
         "is_ot_scanner": is_ot_scanner,
         "is_ot_viewer": is_ot_viewer,
+        "is_anesthesia_scanner": is_anesthesia_scanner,
+        "is_anesthesia_viewer": is_anesthesia_viewer,
         "last_login": last_login,
         "last_logout": last_logout,
         "password_changed": pass_changed,
