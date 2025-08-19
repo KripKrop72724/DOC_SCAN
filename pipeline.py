@@ -148,6 +148,20 @@ def after_request(response):
     return response
 
 
+def is_anesthesia_user():
+    """Check if the current JWT user has anesthesia scanner privileges."""
+    try:
+        username = get_jwt_identity()
+        if not username:
+            return False
+        client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
+        user_coll = client["DOC_SCAN"]["VIEWER_AUTH"]
+        user_doc = user_coll.find_one({"USERNAME": username})
+        return bool(user_doc and user_doc.get("is_anesthesia_scanner"))
+    except Exception:
+        return False
+
+
 def route_function_zip():
     os.system("CmdTwain -q C:\\DocScan\\Doc_Scan_Test_Document.jpg")
     time.sleep(0.5)
@@ -228,6 +242,7 @@ def Route_Function_Patient_Demographics():
 @jwt_required()
 def route_function_upload():
     print("line 1")
+    anesthesia = is_anesthesia_user()
     data_to_be_saved = request.get_json()
     # print(data_to_be_saved)
     d = json.dumps(data_to_be_saved)
@@ -271,7 +286,7 @@ def route_function_upload():
             'complain_ip': loaded["complain_ip"],
             'doctor_id_ip': loaded["doctor_id_ip"],
             'doctor_speciality_ip': loaded["doctor_speciality_ip"],
-            'class': None,
+            'class': 16 if anesthesia else None,
             'ocr': None,
             'notes': None,
             'misclassified': False,
@@ -297,7 +312,7 @@ def route_function_upload():
     return "saved"
 
 
-def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d, mrt):
+def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d, mrt, anesthesia):
     print("line 1")
     # data_to_be_saved = request.get_json()
     # print(data_to_be_saved)
@@ -334,7 +349,7 @@ def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d, mrt):
             'doc_id': int(str(filename).split('.')[0]),
             'doc': image_bytes.getvalue(),
             'mrno': loaded["mrno"],
-            'class': None,
+            'class': 16 if anesthesia else None,
             'ocr': None,
             'notes': None,
             'misclassified': False,
@@ -365,8 +380,9 @@ def bulk_saving_function_for_multi_threaded_saving(data_to_be_saved, d, mrt):
 def route_function_upload_bulk():
     data_to_be_saved = request.get_json()
     d = json.dumps(data_to_be_saved)
+    anesthesia = is_anesthesia_user()
     multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving,
-                            args=(data_to_be_saved, d, False)).start()
+                            args=(data_to_be_saved, d, False, anesthesia)).start()
     return "saved"
 
 
@@ -374,8 +390,9 @@ def route_function_upload_bulk():
 def route_function_mrt_upload_bulk():
     data_to_be_saved = request.get_json()
     d = json.dumps(data_to_be_saved)
+    anesthesia = is_anesthesia_user()
     multiprocessing.Process(target=bulk_saving_function_for_multi_threaded_saving,
-                            args=(data_to_be_saved, d, True)).start()
+                            args=(data_to_be_saved, d, True, anesthesia)).start()
     return "saved"
 
 
@@ -384,6 +401,7 @@ def route_function_save():
     # Get JSON data directly from the request
     data_to_be_saved = request.get_json()
     loaded = data_to_be_saved  # No need for dumping and loading again
+    anesthesia = is_anesthesia_user()
     print(loaded)
 
     for i in loaded["scannedImages"]["scannerImages"]:
@@ -420,7 +438,7 @@ def route_function_save():
             'complain_ip': loaded["complain_ip"],
             'doctor_id_ip': loaded["doctor_id_ip"],
             'doctor_speciality_ip': loaded["doctor_speciality_ip"],
-            'class': None,
+            'class': 16 if anesthesia else None,
             'ocr': None,
             'notes': None,
             'misclassified': False,
@@ -462,9 +480,11 @@ def doc_id_dispatcher():
     return ret
 
 
+@jwt_required()
 def route_function_bulk_save():
     data_to_be_saved = request.get_json()
     loaded = json.loads(json.dumps(data_to_be_saved))
+    anesthesia = is_anesthesia_user()
 
     for i in loaded["scannedImages"]["scannerImages"]:
         # Remove the prefix before decoding
@@ -488,7 +508,7 @@ def route_function_bulk_save():
             'doc_id': int(filename.split('.')[0]),
             'doc': image_bytes.getvalue(),
             'mrno': loaded["mrno"],
-            'class': None,
+            'class': 16 if anesthesia else None,
             'ocr': None,
             'notes': None,
             'misclassified': False,
@@ -517,9 +537,11 @@ def route_function_bulk_save():
     return jsonify({"status": "saved"}), 200
 
 
+@jwt_required()
 def route_function_bulk_save_for_mortality():
     data_to_be_saved = request.get_json()
     loaded = json.loads(json.dumps(data_to_be_saved))
+    anesthesia = is_anesthesia_user()
 
     for i in loaded["scannedImages"]["scannerImages"]:
         # Remove the prefix before decoding
@@ -543,7 +565,7 @@ def route_function_bulk_save_for_mortality():
             'doc_id': int(filename.split('.')[0]),
             'doc': image_bytes.getvalue(),
             'mrno': loaded["mrno"],
-            'class': None,
+            'class': 16 if anesthesia else None,
             'ocr': None,
             'notes': None,
             'misclassified': False,
