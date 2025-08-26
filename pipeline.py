@@ -68,13 +68,15 @@ def login():
         print(user_from_db['PASSWORD'])
         if bc.checkpw(encrpted_password, user_from_db['PASSWORD'].encode("utf-8")):
             access_token = create_access_token(identity=user_from_db['USERNAME'])  # create jwt token
-            return jsonify({"access_token": access_token,
-                            "status": True
-                            }), 200, {"Access-Control-Allow-Origin": '*'}
+            return {
+                "access_token": access_token,
+                "status": True,
+            }, 200, {"Access-Control-Allow-Origin": '*'}
 
-    return jsonify({'msg': 'The username or password is incorrect',
-                    "status": False
-                    }), 401
+    return {
+        'msg': 'The username or password is incorrect',
+        "status": False,
+    }, 401
 
 
 def login_rolebase():
@@ -91,10 +93,10 @@ def login_rolebase():
 
     # Check if the user exists
     if not user_from_db:
-        return jsonify({
+        return {
             'msg': 'Username or password is incorrect',
-            "status": False
-        }), 401
+            "status": False,
+        }, 401
 
     print("-------------------------------------------------------------------------")
     encrypted_password = login_details['PASSWORD'].encode("utf-8")
@@ -110,7 +112,7 @@ def login_rolebase():
                 {'USERNAME': str(login_details['USERNAME']).upper()},
                 {"$set": {"last_login": str(datetime.datetime.now())}}
             )
-            return jsonify({
+            return {
                 "access_token": access_token,
                 "name": user_from_db['name'],
                 "is_admin": user_from_db['is_admin'],
@@ -126,18 +128,18 @@ def login_rolebase():
                 "email": user_from_db['email'],
                 "total_images_scanned": user_from_db['total_images_scanned'],
                 "image": user_from_db['image'],
-                "status": True
-            }), 200, {"Access-Control-Allow-Origin": '*'}
+                "status": True,
+            }, 200, {"Access-Control-Allow-Origin": '*'}
         else:
-            return jsonify({
+            return {
                 'msg': 'You have been deactivated by the admin',
-                "status": False
-            }), 401
+                "status": False,
+            }, 401
     else:
-        return jsonify({
+        return {
             'msg': 'Username or password is incorrect',
-            "status": False
-        }), 401
+            "status": False,
+        }, 401
 
 
 @app.after_request
