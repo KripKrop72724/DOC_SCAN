@@ -680,17 +680,22 @@ def create_scanners():
     # Directly use the received JSON data
     loaded = data_to_be_saved
 
+    def parse_bool(value):
+        if isinstance(value, bool):
+            return value
+        return str(value).lower() in ("true", "1", "t", "yes")
+
     # Extract and convert fields from the input
-    name = str(loaded['name'])
-    password = "$2a$10$TEYwksLM72v9pgqicMbVuegAMdPrLpD8c0bexVjww/nwyfsyS5krC" #shifa123 by default
-    emp_id = str(loaded['emp_id'])
-    is_scanner = bool(loaded['is_scanner'])
-    is_viewer = bool(loaded['is_viewer'])
-    is_ot_scanner = bool(loaded['is_ot_scanner'])
-    is_ot_viewer = bool(loaded['is_ot_viewer'])
+    name = str(loaded["name"])
+    password = "$2a$10$TEYwksLM72v9pgqicMbVuegAMdPrLpD8c0bexVjww/nwyfsyS5krC"  # shifa123 by default
+    emp_id = str(loaded["emp_id"])
+    is_scanner = parse_bool(loaded.get("is_scanner", False))
+    is_viewer = parse_bool(loaded.get("is_viewer", False))
+    is_ot_scanner = parse_bool(loaded.get("is_ot_scanner", False))
+    is_ot_viewer = parse_bool(loaded.get("is_ot_viewer", False))
     # Optional anesthesia roles
-    is_anesthesia_scanner = bool(loaded.get('is_anesthesia_scanner', False))
-    is_anesthesia_viewer = bool(loaded.get('is_anesthesia_viewer', False))
+    is_anesthesia_scanner = parse_bool(loaded.get("is_anesthesia_scanner", False))
+    is_anesthesia_viewer = parse_bool(loaded.get("is_anesthesia_viewer", False))
     is_admin = False
     email = str(loaded['email'])
     is_active = True
@@ -726,6 +731,16 @@ def create_scanners():
     my_client = MongoClient(DB_URL % (DB_USERNAME, DB_PASSWORD))
     collection = my_client["DOC_SCAN"]
     doc_id = collection['VIEWER_AUTH']
+
+    # Normalize anesthesia role fields for existing users
+    doc_id.update_many(
+        {"is_anesthesia_scanner": {"$exists": False}},
+        {"$set": {"is_anesthesia_scanner": False}}
+    )
+    doc_id.update_many(
+        {"is_anesthesia_viewer": {"$exists": False}},
+        {"$set": {"is_anesthesia_viewer": False}}
+    )
 
     # Check if the user already exists using emp_id
     existing_user = doc_id.find_one({"emp_id": emp_id})
