@@ -121,6 +121,8 @@ def login_rolebase():
                 "is_viewer": user_from_db['is_viewer'],
                 "is_ot_scanner": user_from_db.get('is_ot_scanner', False),
                 "is_ot_viewer": user_from_db.get('is_ot_viewer', False),
+                "is_anesthesia_scanner": user_from_db.get('is_anesthesia_scanner', False),
+                "is_anesthesia_viewer": user_from_db.get('is_anesthesia_viewer', False),
                 "last_login": user_from_db['last_login'],
                 "last_logout": user_from_db['last_logout'],
                 "password_changed": user_from_db['password_changed'],
