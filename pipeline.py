@@ -1,6 +1,6 @@
 import json
 import base64
-from flask import send_file, Flask, request, make_response, jsonify
+from flask import send_file, Flask, request, make_response, jsonify, Response
 from flask_compress import Compress
 import Mongo_APIS
 from driver_helper import main_scanner_driver, clear_crap
@@ -1079,7 +1079,21 @@ def get_images_by_admission_id(admission_id):
 def _register_restx_routes():
     def make_resource(func, methods):
         def wrapper(self, **kwargs):
-            return func(**kwargs)
+            """Call the original route function and normalize Flask responses."""
+            result = func(**kwargs)
+            # Unpack tuple responses such as (jsonify(...), 200)
+            if isinstance(result, tuple):
+                data = result[0]
+                status = result[1] if len(result) > 1 else None
+                headers = result[2] if len(result) > 2 else None
+                if isinstance(data, Response):
+                    if status is not None:
+                        data.status_code = status
+                    if headers:
+                        data.headers.update(headers)
+                    return data
+                return (data, status, headers) if headers else (data, status)
+            return result
         attrs = {'__doc__': func.__doc__}
         for m in methods:
             attrs[m.lower()] = wrapper
