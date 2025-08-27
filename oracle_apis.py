@@ -170,9 +170,19 @@ def ipd_patient_details_dates_only(m):
     """.format(mr)
 
     for row in cursor.execute(query):
+        # ``fld_dat_adm_date`` is returned as a ``datetime`` object by the
+        # database driver.  Flask's JSON encoder cannot directly serialise
+        # ``datetime`` objects which leads to ``TypeError: Object of type
+        # datetime is not JSON serializable`` when the data is returned from
+        # the API.  Convert the value to an ISO formatted string so the result
+        # can be safely encoded as JSON.
+        admission_date = row[1]
+        if hasattr(admission_date, "isoformat"):
+            admission_date = admission_date.isoformat()
+
         query_result = {
             'admission_ID': row[0],
-            'admission_date': row[1]
+            'admission_date': admission_date
         }
         admission_details.append(query_result)
 
