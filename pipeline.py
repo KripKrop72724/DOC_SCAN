@@ -53,6 +53,33 @@ app.config['JWT_SECRET_KEY'] = 'zb$@ic^Jg#aywFO1u9%shY7E66Z1cZnO&EK@9e$nwqTrLF#p
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
 
 
+@jwt.unauthorized_loader
+def _handle_missing_jwt(err):
+    """Return a consistent error for missing auth headers."""
+    return jsonify({"message": "Missing or invalid authorization header", "error": err}), 401
+
+
+@jwt.invalid_token_loader
+def _handle_invalid_token(err):
+    """Return a helpful error when the token itself is bad."""
+    return jsonify({"message": "Invalid authorization token", "error": err}), 422
+
+
+@jwt.expired_token_loader
+def _handle_expired_token(jwt_header, jwt_payload):
+    """Return a clear error when the token has expired."""
+    return jsonify({"message": "Authorization token has expired"}), 401
+
+
+def _serialize(data):
+    """Convert objects like Timestamps to JSON serialisable structures."""
+    try:
+        return json.loads(json.dumps(data, default=str))
+    except Exception:
+        # As a fall back just return the original data
+        return data
+
+
 def login():
     login_details = request.get_json()
     print(login_details)
@@ -194,53 +221,88 @@ def welcs():
 
 @jwt_required()
 def Route_Function_Ipd():
-    mr = str(request.args.get('mr'))
-    route_object = oracle_apis.ipd_patient_details_without_complain(mr)
-    return route_object
+    mr = request.args.get('mr')
+    if not mr:
+        return jsonify({"message": "'mr' query parameter is required"}), 400
+    try:
+        route_object = oracle_apis.ipd_patient_details_without_complain(str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch IPD details", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Ipd_with_date():
-    mr = str(request.args.get('mr'))
-    date = str(request.args.get('date'))
-    route_object = oracle_apis.ipd_patient_details_with_date(date, mr)
-    return route_object
+    mr = request.args.get('mr')
+    date = request.args.get('date')
+    if not mr or not date:
+        return jsonify({"message": "Both 'mr' and 'date' query parameters are required"}), 400
+    try:
+        route_object = oracle_apis.ipd_patient_details_with_date(str(date), str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch IPD details", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Ipd_all_dates():
     mr = request.args.get('mr')
-    route_object = oracle_apis.ipd_patient_details_dates_only(mr)
-    return route_object
+    if not mr:
+        return jsonify({"message": "'mr' query parameter is required"}), 400
+    try:
+        route_object = oracle_apis.ipd_patient_details_dates_only(str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch IPD dates", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Opd():
     mr = request.args.get('mr')
-    route_object = oracle_apis.opd_patient_details(mr)
-    return route_object
+    if not mr:
+        return jsonify({"message": "'mr' query parameter is required"}), 400
+    try:
+        route_object = oracle_apis.opd_patient_details(str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch OPD details", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Opd_all_dates():
     mr = request.args.get('mr')
-    route_object = oracle_apis.opd_patient_details_dates_only(mr)
-    return route_object
+    if not mr:
+        return jsonify({"message": "'mr' query parameter is required"}), 400
+    try:
+        route_object = oracle_apis.opd_patient_details_dates_only(str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch OPD dates", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Opd_with_date():
-    mr = str(request.args.get('mr'))
-    date = str(request.args.get('date'))
-    route_object = oracle_apis.opd_patient_details_with_date(date, mr)
-    return route_object
+    mr = request.args.get('mr')
+    date = request.args.get('date')
+    if not mr or not date:
+        return jsonify({"message": "Both 'mr' and 'date' query parameters are required"}), 400
+    try:
+        route_object = oracle_apis.opd_patient_details_with_date(str(date), str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch OPD details", "error": str(e)}), 500
 
 
 @jwt_required()
 def Route_Function_Patient_Demographics():
-    mr = str(request.args.get('mrno'))
-    route_object = oracle_apis.demo(mr)
-    return route_object
+    mr = request.args.get('mrno')
+    if not mr:
+        return jsonify({"message": "'mrno' query parameter is required"}), 400
+    try:
+        route_object = oracle_apis.demo(str(mr))
+        return jsonify(_serialize(route_object)), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch patient demographics", "error": str(e)}), 500
 
 
 @jwt_required()
