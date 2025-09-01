@@ -637,6 +637,7 @@ def image_count_with_class_names(filter_criteria):
         classes = [
             {"name": "Admission Orders", "id": 1},
             {"name": "Face Sheet", "id": 13},
+            {"name": "Anesthesia Documents", "id": 16},
             {"name": "Authorization And Consent", "id": 2},
             {"name": "History and Physical Examination", "id": 7},
             {"name": "Natal", "id": 9},
@@ -649,7 +650,6 @@ def image_count_with_class_names(filter_criteria):
             {"name": "Maternity Notes", "id": 8},
             {"name": "PEADS History", "id": 12},
             {"name": "Personalized Document", "id": 14},
-            {"name": "Anesthesia Documents", "id": 16},
             {"name": "Unclassified", "id": 15}
         ]
         print("Defined class details (expected class IDs and names):")
