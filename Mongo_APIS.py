@@ -652,6 +652,11 @@ def image_count_with_class_names(filter_criteria):
             {"name": "Personalized Document", "id": 14},
             {"name": "Unclassified", "id": 15}
         ]
+
+        # Ensure output order is fixed so "Anesthesia Documents" appears
+        # immediately after "Face Sheet" regardless of any later processing.
+        class_order = [1, 13, 16, 2, 7, 9, 3, 11, 10, 4, 5, 6, 8, 12, 14, 15]
+        classes.sort(key=lambda c: class_order.index(c["id"]))
         print("Defined class details (expected class IDs and names):")
         for cls in classes:
             print(f"  Class: {cls['name']} (ID: {cls['id']})")
